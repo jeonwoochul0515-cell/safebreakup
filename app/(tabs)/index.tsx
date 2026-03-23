@@ -1,98 +1,915 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Dimensions,
+  Linking,
+  Modal,
+  Pressable,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOW } from '@/constants/theme';
+import TrustSignalBar from '@/components/TrustSignalBar';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-export default function HomeScreen() {
+// ─── Data ────────────────────────────────────────────────────────────────────
+
+const QUICK_ACTIONS = [
+  {
+    key: 'diagnosis',
+    label: '위험도 자가진단',
+    desc: '10문항 간편 진단',
+    icon: 'shield-checkmark' as const,
+    color: COLORS.coral,
+    bgColor: COLORS.blush,
+    route: '/diagnosis',
+  },
+  {
+    key: 'warning',
+    label: '법률 경고장',
+    desc: '변호사 명의 발송',
+    icon: 'document-text' as const,
+    color: COLORS.gold,
+    bgColor: COLORS.lavender,
+    route: '/legal-info',
+  },
+  {
+    key: 'evidence',
+    label: '증거보관함',
+    desc: '암호화 안전 저장',
+    icon: 'folder-open' as const,
+    color: COLORS.blue,
+    bgColor: COLORS.warmGray,
+    route: '/evidence',
+  },
+  {
+    key: 'consult',
+    label: 'AI 사무장 상담',
+    desc: '24시간 법률 상담',
+    icon: 'chatbubbles' as const,
+    color: COLORS.sage,
+    bgColor: '#EFF5F0',
+    route: '/ai-secretary',
+  },
+];
+
+const TESTIMONIALS = [
+  {
+    id: '1',
+    text: '이별 과정에서 협박을 받았는데, 법적 대응 방법을 알게 되어 큰 도움이 되었습니다. 혼자가 아니라는 느낌이 들었어요.',
+    author: '20대 A님',
+    stars: 5,
+  },
+  {
+    id: '2',
+    text: '증거 보관 기능 덕분에 중요한 카톡 내용을 안전하게 저장할 수 있었습니다. 상담받을 때도 정리가 되어 있어서 편했어요.',
+    author: '30대 B님',
+    stars: 5,
+  },
+  {
+    id: '3',
+    text: '자가진단으로 제 상황이 심각하다는 걸 깨달았어요. 빠르게 법률 상담을 받을 수 있어서 정말 감사합니다.',
+    author: '20대 C님',
+    stars: 5,
+  },
+  {
+    id: '4',
+    text: '경고장 발송 후 상대방의 연락이 멈췄습니다. 법의 힘을 실감했어요. 이 서비스가 없었다면 계속 힘들었을 거예요.',
+    author: '30대 D님',
+    stars: 4,
+  },
+];
+
+const FAQ_DATA = [
+  {
+    q: '이별방패는 어떤 서비스인가요?',
+    a: '이별방패는 이별 과정에서 발생할 수 있는 법적 위험(스토킹, 협박, 사생활 침해 등)으로부터 안전하게 보호받을 수 있도록 돕는 법률 서비스입니다. 대표변호사가 직접 운영합니다.',
+  },
+  {
+    q: '위험도 자가진단은 어떻게 이용하나요?',
+    a: '위험도 자가진단은 별도 비용 없이 이용하실 수 있습니다. 10개 문항에 답변하시면 진단 결과에 따라 맞춤형 법률 안내와 대응 방법을 제공합니다.',
+  },
+  {
+    q: '증거는 안전하게 보관되나요?',
+    a: '네, 모든 증거 자료는 암호화되어 안전하게 보관됩니다. 기기 내 로컬 저장과 클라우드 백업을 함께 지원하여 분실 위험을 최소화합니다.',
+  },
+  {
+    q: '법률 상담은 어떻게 받을 수 있나요?',
+    a: '앱 내 상담 요청 또는 카카오톡 채널을 통해 상담을 예약하실 수 있습니다. 긴급한 경우 SOS 기능을 통해 빠르게 연결해 드립니다.',
+  },
+  {
+    q: '상대방에게 이 앱 사용이 알려질 수 있나요?',
+    a: '절대 알려지지 않습니다. 스텔스 모드(계산기 위장)를 지원하며, 알림도 비공개로 처리됩니다. 개인정보 보호를 최우선으로 설계되었습니다.',
+  },
+];
+
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+function StarRating({ count }: { count: number }) {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <View style={{ flexDirection: 'row', gap: 3 }}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Ionicons
+          key={i}
+          name={i < count ? 'star' : 'star-outline'}
+          size={14}
+          color={COLORS.gold}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      ))}
+    </View>
   );
 }
 
+function FAQItem({ item, isLast }: { item: { q: string; a: string }; isLast: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      onPress={() => setOpen(!open)}
+      style={[styles.faqItem, !isLast && styles.faqItemBorder]}
+    >
+      <View style={styles.faqHeader}>
+        <Text style={styles.faqQuestion}>{item.q}</Text>
+        <View style={styles.faqChevron}>
+          <Ionicons
+            name={open ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={COLORS.lightText}
+          />
+        </View>
+      </View>
+      {open && <Text style={styles.faqAnswer}>{item.a}</Text>}
+    </TouchableOpacity>
+  );
+}
+
+// ─── Main Screen ─────────────────────────────────────────────────────────────
+
+export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
+  const [sosVisible, setSosVisible] = useState(false);
+  const testimonialRef = useRef<ScrollView>(null);
+
+  const handleQuickAction = (route: string) => {
+    router.push(route as any);
+  };
+
+  const handleKakao = () => {
+    Linking.openURL('https://pf.kakao.com/_xfLxbxj').catch(() => {});
+  };
+
+  return (
+    <View style={styles.root}>
+      {/* ── Header ── */}
+      <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}>
+        <View style={styles.headerInner}>
+          <View style={styles.headerLeft}>
+            <View style={styles.logoIconWrap}>
+              <Ionicons name="shield" size={22} color={COLORS.gold} />
+            </View>
+            <View>
+              <Text style={styles.logoText}>이별방패</Text>
+              <Text style={styles.headerSubtitle}>법률사무소 청송</Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            onPress={() => setSosVisible(true)}
+            style={styles.sosChip}
+            activeOpacity={0.8}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <View style={styles.sosDot} />
+            <Text style={styles.sosChipText}>SOS</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Hero ── */}
+        <View style={styles.hero}>
+          <View style={styles.heroShieldBadge}>
+            <Ionicons name="shield-checkmark" size={28} color={COLORS.gold} />
+          </View>
+
+          <Text style={styles.heroHeadline}>
+            {'안전한 이별,\n법이 지켜드립니다'}
+          </Text>
+          <Text style={styles.heroSubtitle}>
+            {'대표변호사 김창희가 직접 운영하는\n당신을 위한 법률 보호 서비스'}
+          </Text>
+
+          <TrustSignalBar phase={1} compact />
+
+          <TouchableOpacity
+            style={styles.ctaPrimary}
+            activeOpacity={0.85}
+            onPress={() => router.push('/diagnosis' as any)}
+          >
+            <Ionicons name="shield-checkmark" size={20} color={COLORS.white} />
+            <Text style={styles.ctaPrimaryText}>위험도 자가진단 시작</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.ctaSecondary}
+            activeOpacity={0.7}
+            onPress={() => setSosVisible(true)}
+          >
+            <Text style={styles.ctaSecondaryText}>
+              긴급 도움이 필요하다면
+            </Text>
+            <Ionicons name="arrow-forward" size={15} color={COLORS.gold} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Quick Actions ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>빠른 서비스</Text>
+          <View style={styles.quickGrid}>
+            {QUICK_ACTIONS.map((action) => (
+              <TouchableOpacity
+                key={action.key}
+                style={styles.quickCard}
+                activeOpacity={0.75}
+                onPress={() => handleQuickAction(action.route)}
+              >
+                <View
+                  style={[
+                    styles.quickIconWrap,
+                    { backgroundColor: action.bgColor },
+                  ]}
+                >
+                  <Ionicons
+                    name={action.icon}
+                    size={32}
+                    color={action.color}
+                  />
+                </View>
+                <Text style={styles.quickLabel}>{action.label}</Text>
+                <Text style={styles.quickDesc}>{action.desc}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* ── Kakao Banner ── */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.kakaoBanner}
+            activeOpacity={0.85}
+            onPress={handleKakao}
+          >
+            <View style={styles.kakaoContent}>
+              <View style={styles.kakaoIconWrap}>
+                <Text style={styles.kakaoIcon}>💬</Text>
+              </View>
+              <View style={styles.kakaoTextArea}>
+                <Text style={styles.kakaoBannerTitle}>
+                  카카오톡 채널 추가하기
+                </Text>
+                <Text style={styles.kakaoBannerSub}>
+                  최신 법률 소식과 보호 팁을 받아보세요
+                </Text>
+              </View>
+              <View style={styles.kakaoArrow}>
+                <Ionicons name="chevron-forward" size={20} color={COLORS.kakaoBrown} />
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Testimonials ── */}
+        <View style={styles.sectionFull}>
+          <Text style={[styles.sectionTitle, { paddingHorizontal: SPACING.lg }]}>
+            이용 후기
+          </Text>
+          <ScrollView
+            ref={testimonialRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.testimonialScroll}
+            decelerationRate="fast"
+            snapToInterval={SCREEN_WIDTH * 0.8 + SPACING.md}
+          >
+            {TESTIMONIALS.map((t) => (
+              <View key={t.id} style={styles.testimonialCard}>
+                <Text style={styles.testimonialQuoteMark}>"</Text>
+                <StarRating count={t.stars} />
+                <Text style={styles.testimonialText}>{t.text}</Text>
+                <View style={styles.testimonialFooter}>
+                  <View style={styles.testimonialAvatar}>
+                    <Ionicons name="person" size={14} color={COLORS.gold} />
+                  </View>
+                  <Text style={styles.testimonialAuthor}>{t.author}</Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* ── FAQ ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>자주 묻는 질문</Text>
+          <View style={styles.faqContainer}>
+            {FAQ_DATA.map((item, idx) => (
+              <FAQItem key={idx} item={item} isLast={idx === FAQ_DATA.length - 1} />
+            ))}
+          </View>
+        </View>
+
+        {/* ── Footer ── */}
+        <View style={styles.footer}>
+          <View style={styles.footerDivider} />
+          <Text style={styles.footerTitle}>
+            법률사무소 청송
+          </Text>
+          <Text style={styles.footerLawyer}>
+            대표변호사 김창희
+          </Text>
+          <Text style={styles.footerDisclaimer}>
+            본 서비스에서 제공하는 정보는 일반적인 법률 안내이며,{'\n'}
+            구체적인 법률 조언을 대체할 수 없습니다.
+          </Text>
+          <Text style={styles.footerCopy}>
+            © 2026 이별방패. All rights reserved.
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* ── SOS Modal ── */}
+      <Modal
+        visible={sosVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSosVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setSosVisible(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHandle} />
+
+            <View style={styles.modalIconWrap}>
+              <Ionicons name="heart" size={32} color={COLORS.coral} />
+            </View>
+
+            <Text style={styles.modalTitle}>긴급 도움이 필요하신가요?</Text>
+            <Text style={styles.modalDesc}>
+              위험한 상황이라면 즉시 아래 번호로 연락하세요.{'\n'}
+              당신은 혼자가 아닙니다.
+            </Text>
+
+            <View style={styles.sosButtonGroup}>
+              <TouchableOpacity
+                style={styles.sosButton}
+                activeOpacity={0.85}
+                onPress={() => {
+                  Linking.openURL('tel:112');
+                  setSosVisible(false);
+                }}
+              >
+                <View style={[styles.sosButtonIcon, { backgroundColor: COLORS.coral }]}>
+                  <Ionicons name="call" size={20} color={COLORS.white} />
+                </View>
+                <View style={styles.sosButtonTextArea}>
+                  <Text style={styles.sosButtonTitle}>경찰 신고</Text>
+                  <Text style={styles.sosButtonNumber}>112</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.lightText} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.sosButton}
+                activeOpacity={0.85}
+                onPress={() => {
+                  Linking.openURL('tel:1366');
+                  setSosVisible(false);
+                }}
+              >
+                <View style={[styles.sosButtonIcon, { backgroundColor: COLORS.sage }]}>
+                  <Ionicons name="heart" size={20} color={COLORS.white} />
+                </View>
+                <View style={styles.sosButtonTextArea}>
+                  <Text style={styles.sosButtonTitle}>여성긴급전화</Text>
+                  <Text style={styles.sosButtonNumber}>1366</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.lightText} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.sosButton}
+                activeOpacity={0.85}
+                onPress={() => {
+                  Linking.openURL('tel:1644-8422');
+                  setSosVisible(false);
+                }}
+              >
+                <View style={[styles.sosButtonIcon, { backgroundColor: COLORS.navy }]}>
+                  <Ionicons name="chatbubbles" size={20} color={COLORS.gold} />
+                </View>
+                <View style={styles.sosButtonTextArea}>
+                  <Text style={styles.sosButtonTitle}>법률사무소 청송 상담</Text>
+                  <Text style={styles.sosButtonNumber}>1644-8422</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.lightText} />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalClose}
+              onPress={() => setSosVisible(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.modalCloseText}>닫기</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
+const CARD_GAP = SPACING.md;
+const CARD_WIDTH = (SCREEN_WIDTH - SPACING.lg * 2 - CARD_GAP) / 2;
+
 const styles = StyleSheet.create({
-  titleContainer: {
+  root: {
+    flex: 1,
+    backgroundColor: COLORS.cream,
+  },
+
+  // ── Header ──
+  header: {
+    backgroundColor: COLORS.navy,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.md + 4,
+  },
+  headerInner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: SPACING.sm + 2,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  logoIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: RADIUS.sm,
+    backgroundColor: 'rgba(196,149,106,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  logoText: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '800',
+    color: COLORS.gold,
+    letterSpacing: 0.5,
+  },
+  headerSubtitle: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.lightText,
+    marginTop: 1,
+    letterSpacing: 0.3,
+  },
+  sosChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(224,122,95,0.15)',
+    paddingHorizontal: SPACING.md + 2,
+    paddingVertical: SPACING.sm + 2,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: 'rgba(224,122,95,0.3)',
+    minHeight: 40,
+  },
+  sosDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.coral,
+  },
+  sosChipText: {
+    color: COLORS.coralLight,
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+
+  // ── Scroll ──
+  scroll: {
+    flex: 1,
+  },
+
+  // ── Hero ──
+  hero: {
+    backgroundColor: COLORS.warmWhite,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xxl + SPACING.sm,
+    paddingBottom: SPACING.xl + SPACING.sm,
+    alignItems: 'center',
+  },
+  heroShieldBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.blush,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.lg,
+  },
+  heroHeadline: {
+    fontSize: FONT_SIZE.hero,
+    fontWeight: '800',
+    color: COLORS.navy,
+    textAlign: 'center',
+    lineHeight: FONT_SIZE.hero * 1.6,
+    letterSpacing: -0.5,
+  },
+  heroSubtitle: {
+    fontSize: FONT_SIZE.lg,
+    color: COLORS.slate,
+    textAlign: 'center',
+    marginTop: SPACING.md,
+    lineHeight: FONT_SIZE.lg * 1.6,
+  },
+  ctaPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.gold,
+    paddingHorizontal: SPACING.xl + SPACING.sm,
+    paddingVertical: SPACING.md + 2,
+    borderRadius: RADIUS.full,
+    marginTop: SPACING.lg + SPACING.sm,
+    minHeight: 56,
+    ...SHADOW.md,
+  },
+  ctaPrimaryText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  ctaSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs + 2,
+    marginTop: SPACING.md + SPACING.xs,
+    paddingVertical: SPACING.sm + 2,
+    minHeight: 44,
+  },
+  ctaSecondaryText: {
+    color: COLORS.gold,
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+  },
+
+  // ── Sections ──
+  section: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xxl,
+  },
+  sectionFull: {
+    paddingTop: SPACING.xxl,
+  },
+  sectionTitle: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '700',
+    color: COLORS.navy,
+    marginBottom: SPACING.lg,
+    letterSpacing: -0.3,
+  },
+
+  // ── Quick Actions ──
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: CARD_GAP,
+  },
+  quickCard: {
+    width: CARD_WIDTH,
+    backgroundColor: COLORS.cardBg,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    alignItems: 'center',
+    gap: SPACING.sm + 2,
+    ...SHADOW.sm,
+  },
+  quickIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: RADIUS.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickLabel: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.darkText,
+    textAlign: 'center',
+    marginTop: SPACING.xs,
+  },
+  quickDesc: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.lightText,
+    textAlign: 'center',
+    lineHeight: FONT_SIZE.xs * 1.5,
+  },
+
+  // ── Kakao Banner ──
+  kakaoBanner: {
+    backgroundColor: '#FFF8DB',
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: '#FEE500',
+  },
+  kakaoContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  kakaoIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.kakaoYellow,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kakaoIcon: {
+    fontSize: 24,
+  },
+  kakaoTextArea: {
+    flex: 1,
+  },
+  kakaoBannerTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.kakaoBrown,
+  },
+  kakaoBannerSub: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.kakaoBrown,
+    opacity: 0.6,
+    marginTop: 3,
+  },
+  kakaoArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: RADIUS.full,
+    backgroundColor: 'rgba(60,30,30,0.06)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // ── Testimonials ──
+  testimonialScroll: {
+    paddingHorizontal: SPACING.lg,
+    gap: SPACING.md,
+  },
+  testimonialCard: {
+    width: SCREEN_WIDTH * 0.8,
+    backgroundColor: COLORS.cardBg,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    paddingTop: SPACING.xl,
+    gap: SPACING.sm,
+    ...SHADOW.sm,
+    position: 'relative',
+  },
+  testimonialQuoteMark: {
     position: 'absolute',
+    top: 8,
+    left: SPACING.lg,
+    fontSize: 48,
+    color: COLORS.goldLight,
+    fontWeight: '800',
+    lineHeight: 52,
+    opacity: 0.6,
+  },
+  testimonialText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.darkText,
+    lineHeight: FONT_SIZE.md * 1.6,
+    marginTop: SPACING.xs,
+  },
+  testimonialFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginTop: SPACING.sm,
+  },
+  testimonialAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.blush,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  testimonialAuthor: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.slate,
+    fontWeight: '600',
+  },
+
+  // ── FAQ ──
+  faqContainer: {
+    backgroundColor: COLORS.cardBg,
+    borderRadius: RADIUS.lg,
+    overflow: 'hidden',
+    ...SHADOW.sm,
+  },
+  faqItem: {
+    padding: SPACING.lg,
+  },
+  faqItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderLight,
+  },
+  faqHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: SPACING.md,
+    minHeight: 28,
+  },
+  faqChevron: {
+    width: 28,
+    height: 28,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.warmGray,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  faqQuestion: {
+    flex: 1,
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.darkText,
+    lineHeight: FONT_SIZE.md * 1.5,
+  },
+  faqAnswer: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.slate,
+    lineHeight: FONT_SIZE.md * 1.6,
+    marginTop: SPACING.md,
+    paddingTop: SPACING.md,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.borderLight,
+  },
+
+  // ── Footer ──
+  footer: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.xxl + SPACING.md,
+    paddingBottom: SPACING.lg,
+    alignItems: 'center',
+    gap: SPACING.xs + 2,
+  },
+  footerDivider: {
+    width: 40,
+    height: 2,
+    backgroundColor: COLORS.borderLight,
+    borderRadius: 1,
+    marginBottom: SPACING.lg,
+  },
+  footerTitle: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '700',
+    color: COLORS.slate,
+    letterSpacing: 0.3,
+  },
+  footerLawyer: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '500',
+    color: COLORS.lightText,
+  },
+  footerDisclaimer: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.lightText,
+    textAlign: 'center',
+    lineHeight: FONT_SIZE.xs * 1.6,
+    marginTop: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+  },
+  footerCopy: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.lightText,
+    marginTop: SPACING.xs,
+    opacity: 0.7,
+  },
+
+  // ── SOS Modal ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(45,43,61,0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: COLORS.warmWhite,
+    borderTopLeftRadius: RADIUS.xl + 4,
+    borderTopRightRadius: RADIUS.xl + 4,
+    padding: SPACING.lg,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.xl,
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: COLORS.borderLight,
+    marginBottom: SPACING.md,
+  },
+  modalIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.blush,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.xs,
+  },
+  modalTitle: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '700',
+    color: COLORS.navy,
+    letterSpacing: -0.3,
+  },
+  modalDesc: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.slate,
+    textAlign: 'center',
+    lineHeight: FONT_SIZE.md * 1.6,
+    marginBottom: SPACING.md,
+  },
+  sosButtonGroup: {
+    width: '100%',
+    gap: SPACING.sm,
+  },
+  sosButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.warmGray,
+    width: '100%',
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    borderRadius: RADIUS.lg,
+    gap: SPACING.md,
+    minHeight: 64,
+  },
+  sosButtonIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sosButtonTextArea: {
+    flex: 1,
+  },
+  sosButtonTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.darkText,
+  },
+  sosButtonNumber: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.slate,
+    marginTop: 2,
+  },
+  sosButtonText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+  },
+  modalClose: {
+    paddingVertical: SPACING.md + 4,
+    paddingHorizontal: SPACING.xxl,
+    marginTop: SPACING.sm,
+  },
+  modalCloseText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.lightText,
+    fontWeight: '600',
   },
 });
