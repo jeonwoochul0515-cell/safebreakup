@@ -38,8 +38,10 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
 export default function DiagnosisScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const totalQuestions = DIAGNOSIS_QUESTIONS.length;
   const currentQuestion = DIAGNOSIS_QUESTIONS[currentIndex];
@@ -82,6 +84,29 @@ export default function DiagnosisScreen() {
 
   const handleSelectAnswer = (questionId: number, value: number) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
+    setSelectedAnswer(value);
+    // 선택 표시 후 0.45초 뒤 자동 다음 문항
+    if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+    autoAdvanceTimer.current = setTimeout(() => {
+      setSelectedAnswer(null);
+      if (currentIndex < totalQuestions - 1) {
+        animateTransition('next', () => {
+          setCurrentIndex((prev) => prev + 1);
+        });
+      } else {
+        let totalScore = 0;
+        const newAnswers = { ...answers, [questionId]: value };
+        DIAGNOSIS_QUESTIONS.forEach((q) => {
+          const answerValue = newAnswers[q.id] ?? 0;
+          totalScore += (answerValue < 0 ? 0 : answerValue) * q.weight;
+        });
+        totalScore = Math.round(totalScore * 10) / 10;
+        router.push({
+          pathname: '/diagnosis-result',
+          params: { score: totalScore, answers: JSON.stringify(newAnswers) },
+        });
+      }
+    }, 450);
   };
 
   const handleNext = () => {

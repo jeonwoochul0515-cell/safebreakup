@@ -145,6 +145,50 @@ function RootNavigator() {
             title: '설정',
           }}
         />
+
+        {/* ── v3 New Modules ── */}
+        {/* M1: Danger Assessment */}
+        <Stack.Screen name="danger-assessment" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="escalation-timeline" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="safety-planner" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="coercive-control" options={{ headerShown: false, animation: 'slide_from_right' }} />
+
+        {/* M2: Stalking Response */}
+        <Stack.Screen name="stalking-log" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="digital-security" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="stalkerware-guide" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="contact-monitor" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="safety-checkin" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="restraining-order" options={{ headerShown: false, animation: 'slide_from_right' }} />
+
+        {/* M3: NCII Response */}
+        <Stack.Screen name="ncii-response" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="takedown-templates" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="deepfake-response" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="sextortion-response" options={{ headerShown: false, animation: 'slide_from_right' }} />
+
+        {/* M4A: Financial Abuse */}
+        <Stack.Screen name="financial-abuse" options={{ headerShown: false, animation: 'slide_from_right' }} />
+
+        {/* M4B: Gaslighting */}
+        <Stack.Screen name="gaslighting-test" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="gaslighting-journal" options={{ headerShown: false, animation: 'slide_from_right' }} />
+
+        {/* M4C: Trauma Recovery */}
+        <Stack.Screen name="grounding" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="self-assessment" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="recovery-tracker" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="therapist-directory" options={{ headerShown: false, animation: 'slide_from_right' }} />
+
+        {/* M4D: Safe Places */}
+        <Stack.Screen name="safe-places" options={{ headerShown: false, animation: 'slide_from_right' }} />
+
+        {/* M4F: Evidence Forensics */}
+        <Stack.Screen name="evidence-forensics" options={{ headerShown: false, animation: 'slide_from_right' }} />
+
+        {/* Landing & Hub */}
+        <Stack.Screen name="landing" options={{ headerShown: false, presentation: 'modal' }} />
+        <Stack.Screen name="services-hub" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
 
       {/* Floating SOS button — always visible */}

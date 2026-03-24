@@ -287,6 +287,46 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* ── v3 Protection Modules ── */}
+        <View style={styles.section}>
+          <View style={styles.v3Header}>
+            <Text style={styles.sectionTitle}>종합 보호 시스템</Text>
+            <TouchableOpacity onPress={() => router.push('/services-hub' as any)} activeOpacity={0.7}>
+              <Text style={{ fontSize: FONT_SIZE.sm, color: COLORS.gold, fontWeight: '600' }}>전체보기</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: SPACING.md }}>
+            {[
+              { title: '위험도 정밀진단', sub: '캠벨 기반 20문항', icon: 'analytics' as const, color: COLORS.coral, route: '/danger-assessment', isNew: true },
+              { title: '스토킹 대응', sub: '사건기록 & 증거수집', icon: 'eye-off' as const, color: COLORS.blue, route: '/stalking-log', isNew: true },
+              { title: '디지털 성범죄', sub: '긴급 대응 & 삭제요청', icon: 'lock-closed' as const, color: COLORS.plum, route: '/ncii-response', isNew: true },
+              { title: '가스라이팅 테스트', sub: '15문항 자가진단', icon: 'bulb' as const, color: '#D4A373', route: '/gaslighting-test', isNew: true },
+              { title: '트라우마 회복', sub: '그라운딩 & 호흡법', icon: 'heart' as const, color: COLORS.sage, route: '/grounding', isNew: true },
+              { title: '증거 포렌식', sub: 'SHA-256 무결성 보장', icon: 'finger-print' as const, color: COLORS.gold, route: '/evidence-forensics', isNew: true },
+            ].map((m, i) => (
+              <TouchableOpacity key={i} style={styles.v3Card} onPress={() => router.push(m.route as any)} activeOpacity={0.75}>
+                {m.isNew && <View style={styles.v3NewBadge}><Text style={styles.v3NewText}>NEW</Text></View>}
+                <View style={[styles.v3IconWrap, { backgroundColor: m.color + '18' }]}>
+                  <Ionicons name={m.icon} size={24} color={m.color} />
+                </View>
+                <Text style={styles.v3Title}>{m.title}</Text>
+                <Text style={styles.v3Sub}>{m.sub}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* ── Premium Banner ── */}
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.premiumBanner} onPress={() => router.push('/landing' as any)} activeOpacity={0.85}>
+            <View>
+              <Text style={styles.premiumTitle}>보호우산 케어 플랜</Text>
+              <Text style={styles.premiumSub}>커피 한 잔 값으로 법적 보호를 · 월 4,900원</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.gold} />
+          </TouchableOpacity>
+        </View>
+
         {/* ── Testimonials ── */}
         <View style={styles.sectionFull}>
           <Text style={[styles.sectionTitle, { paddingHorizontal: SPACING.lg }]}>
@@ -538,7 +578,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.navy,
     textAlign: 'center',
-    lineHeight: FONT_SIZE.hero * 1.6,
+    lineHeight: FONT_SIZE.hero * 1.3,
     letterSpacing: -0.5,
   },
   heroSubtitle: {
@@ -551,7 +591,6 @@ const styles = StyleSheet.create({
   ctaPrimary: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
     backgroundColor: COLORS.gold,
     paddingHorizontal: SPACING.xl + SPACING.sm,
     paddingVertical: SPACING.md + 2,
@@ -565,11 +604,11 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
     letterSpacing: 0.2,
+    marginLeft: SPACING.sm,
   },
   ctaSecondary: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.xs + 2,
     marginTop: SPACING.md + SPACING.xs,
     paddingVertical: SPACING.sm + 2,
     minHeight: 44,
@@ -600,15 +639,15 @@ const styles = StyleSheet.create({
   quickGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: CARD_GAP,
+    justifyContent: 'space-between',
   },
   quickCard: {
-    width: CARD_WIDTH,
+    width: '48%',
     backgroundColor: COLORS.cardBg,
     borderRadius: RADIUS.lg,
     padding: SPACING.lg,
     alignItems: 'center',
-    gap: SPACING.sm + 2,
+    marginBottom: SPACING.md,
     ...SHADOW.sm,
   },
   quickIconWrap: {
@@ -623,13 +662,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.darkText,
     textAlign: 'center',
-    marginTop: SPACING.xs,
+    marginTop: SPACING.sm,
   },
   quickDesc: {
     fontSize: FONT_SIZE.xs,
     color: COLORS.lightText,
     textAlign: 'center',
     lineHeight: FONT_SIZE.xs * 1.5,
+    marginTop: SPACING.xs,
   },
 
   // ── Kakao Banner ──
@@ -911,5 +951,72 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.md,
     color: COLORS.lightText,
     fontWeight: '600',
+  },
+
+  // v3 Module Cards
+  v3Header: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: SPACING.sm,
+  },
+  v3Card: {
+    width: 140,
+    backgroundColor: COLORS.cardBg,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginRight: SPACING.sm,
+    ...SHADOW.sm,
+  },
+  v3NewBadge: {
+    position: 'absolute' as const,
+    top: 8,
+    right: 8,
+    backgroundColor: COLORS.coral,
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  v3NewText: {
+    fontSize: 9,
+    fontWeight: '800' as const,
+    color: COLORS.white,
+  },
+  v3IconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginBottom: SPACING.sm,
+  },
+  v3Title: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '700' as const,
+    color: COLORS.darkText,
+  },
+  v3Sub: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.lightText,
+    marginTop: 2,
+  },
+  premiumBanner: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    backgroundColor: COLORS.navy,
+    borderRadius: RADIUS.md,
+    paddingVertical: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+  },
+  premiumTitle: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700' as const,
+    color: COLORS.gold,
+  },
+  premiumSub: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.goldLight,
+    marginTop: 2,
   },
 });

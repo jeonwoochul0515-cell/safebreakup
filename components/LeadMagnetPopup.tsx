@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Modal,
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
+  Linking,
   Pressable,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { COLORS, SPACING, RADIUS, FONT_SIZE } from '@/constants/theme';
 
 interface LeadMagnetPopupProps {
@@ -18,24 +17,27 @@ interface LeadMagnetPopupProps {
   onClose: () => void;
 }
 
-const BULLET_ITEMS = [
-  '증거 수집 방법',
-  '법적 대응 절차',
-  '디지털 안전 점검',
-  '긴급 상황 대처법',
+const FEATURES = [
+  { icon: 'shield-checkmark', label: '위험도 자가진단', desc: '10문항으로 내 상황 파악', color: COLORS.coral },
+  { icon: 'lock-closed', label: '디지털 성범죄 대응', desc: '삭제 요청 & 증거 수집', color: COLORS.plum },
+  { icon: 'analytics', label: '가스라이팅 테스트', desc: '15문항 심리 패턴 분석', color: '#D4A373' },
+  { icon: 'heart', label: '트라우마 회복', desc: '그라운딩 & 호흡법', color: COLORS.sage },
 ];
 
 export default function LeadMagnetPopup({ visible, onClose }: LeadMagnetPopupProps) {
-  const [email, setEmail] = useState('');
-
-  const handleSubmit = () => {
-    if (!email.trim()) {
-      Alert.alert('알림', '이메일을 입력해주세요.');
-      return;
-    }
-    Alert.alert('안내', '가이드가 이메일로 발송됩니다. (서비스 준비 중)');
-    setEmail('');
+  const handleStartDiagnosis = () => {
     onClose();
+    router.push('/diagnosis' as any);
+  };
+
+  const handleKakao = () => {
+    onClose();
+    Linking.openURL('https://pf.kakao.com/_xfLxbxj').catch(() => {});
+  };
+
+  const handleViewAll = () => {
+    onClose();
+    router.push('/landing' as any);
   };
 
   return (
@@ -45,75 +47,73 @@ export default function LeadMagnetPopup({ visible, onClose }: LeadMagnetPopupPro
       animationType="fade"
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <Pressable style={styles.overlayPress} onPress={onClose}>
-          <Pressable style={styles.card} onPress={() => {}}>
-            {/* Close button */}
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={onClose}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              accessibilityLabel="닫기"
-            >
-              <Text style={styles.closeText}>✕</Text>
-            </TouchableOpacity>
+      <Pressable style={styles.overlayPress} onPress={onClose}>
+        <Pressable style={styles.card} onPress={() => {}}>
+          {/* Close */}
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onClose}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityLabel="닫기"
+          >
+            <Ionicons name="close" size={18} color={COLORS.slate} />
+          </TouchableOpacity>
 
-            {/* Shield icon & heading */}
-            <Text style={styles.shieldIcon}>🛡️</Text>
-            <Text style={styles.heading}>안전이별 가이드 PDF</Text>
-            <Text style={styles.subheading}>
-              변호사가 알려주는 안전한 이별 준비 7단계
-            </Text>
+          {/* Header */}
+          <View style={styles.iconCircle}>
+            <Ionicons name="shield-checkmark" size={28} color={COLORS.gold} />
+          </View>
+          <Text style={styles.heading}>지금 바로 보호를 시작하세요</Text>
+          <Text style={styles.subheading}>
+            변호사가 직접 운영하는 안전이별 플랫폼
+          </Text>
 
-            {/* Bullet points */}
-            <View style={styles.bulletContainer}>
-              {BULLET_ITEMS.map((item) => (
-                <View key={item} style={styles.bulletRow}>
-                  <Text style={styles.bulletDot}>•</Text>
-                  <Text style={styles.bulletText}>{item}</Text>
+          {/* Feature Grid */}
+          <View style={styles.featureGrid}>
+            {FEATURES.map((f) => (
+              <View key={f.label} style={styles.featureItem}>
+                <Ionicons name={f.icon as any} size={20} color={f.color} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.featureLabel}>{f.label}</Text>
+                  <Text style={styles.featureDesc}>{f.desc}</Text>
                 </View>
-              ))}
-            </View>
+              </View>
+            ))}
+          </View>
 
-            {/* Email input */}
-            <TextInput
-              style={styles.input}
-              placeholder="이메일을 입력하세요"
-              placeholderTextColor={COLORS.lightText}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              value={email}
-              onChangeText={setEmail}
-            />
+          {/* Primary CTA */}
+          <TouchableOpacity
+            style={styles.ctaPrimary}
+            onPress={handleStartDiagnosis}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="shield-checkmark" size={18} color={COLORS.white} />
+            <Text style={styles.ctaPrimaryText}>무료 위험도 진단 시작</Text>
+          </TouchableOpacity>
 
-            {/* CTA button */}
-            <TouchableOpacity
-              style={styles.ctaButton}
-              onPress={handleSubmit}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.ctaText}>가이드 받기</Text>
+          {/* Secondary CTAs */}
+          <View style={styles.secondaryRow}>
+            <TouchableOpacity style={styles.ctaSecondary} onPress={handleKakao} activeOpacity={0.7}>
+              <Ionicons name="chatbubble-ellipses" size={16} color={COLORS.gold} />
+              <Text style={styles.ctaSecondaryText}>카카오톡 상담</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.ctaSecondary} onPress={handleViewAll} activeOpacity={0.7}>
+              <Ionicons name="apps" size={16} color={COLORS.gold} />
+              <Text style={styles.ctaSecondaryText}>전체 서비스 보기</Text>
+            </TouchableOpacity>
+          </View>
 
-            {/* Lawyer credit */}
-            <Text style={styles.creditText}>
-              법률사무소 청송 / 검토: 김창희 변호사
-            </Text>
-          </Pressable>
+          {/* Credit */}
+          <Text style={styles.creditText}>
+            법률사무소 청송 / 검토: 김창희 변호사
+          </Text>
         </Pressable>
-      </KeyboardAvoidingView>
+      </Pressable>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-  },
   overlayPress: {
     flex: 1,
     backgroundColor: COLORS.overlay,
@@ -142,13 +142,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.cream,
   },
-  closeText: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.slate,
-    fontWeight: '600',
-  },
-  shieldIcon: {
-    fontSize: 40,
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.gold + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: SPACING.sm,
   },
   heading: {
@@ -165,53 +165,65 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
     lineHeight: 20,
   },
-  bulletContainer: {
+  featureGrid: {
     alignSelf: 'stretch',
     backgroundColor: COLORS.cream,
     borderRadius: RADIUS.sm,
     padding: SPACING.md,
     marginBottom: SPACING.md,
+    gap: SPACING.sm,
   },
-  bulletRow: {
+  featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: SPACING.xs,
+    gap: SPACING.sm,
   },
-  bulletDot: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.gold,
-    marginRight: SPACING.sm,
-    fontWeight: '700',
-  },
-  bulletText: {
-    fontSize: FONT_SIZE.md,
+  featureLabel: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
     color: COLORS.darkText,
   },
-  input: {
-    alignSelf: 'stretch',
-    height: 48,
-    borderWidth: 1,
-    borderColor: COLORS.borderLight,
-    borderRadius: RADIUS.sm,
-    paddingHorizontal: SPACING.md,
-    fontSize: FONT_SIZE.md,
-    color: COLORS.darkText,
-    backgroundColor: COLORS.warmWhite,
-    marginBottom: SPACING.md,
+  featureDesc: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.lightText,
   },
-  ctaButton: {
+  ctaPrimary: {
     alignSelf: 'stretch',
     height: 50,
     backgroundColor: COLORS.gold,
     borderRadius: RADIUS.sm,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
+    gap: 8,
   },
-  ctaText: {
+  ctaPrimaryText: {
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
     color: COLORS.white,
+  },
+  secondaryRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    alignSelf: 'stretch',
+    marginBottom: SPACING.md,
+  },
+  ctaSecondary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+  },
+  ctaSecondaryText: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '600',
+    color: COLORS.darkText,
   },
   creditText: {
     fontSize: FONT_SIZE.xs,
