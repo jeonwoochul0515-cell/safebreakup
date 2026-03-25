@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
@@ -20,18 +20,21 @@ function RootNavigator() {
   const { isStealthMode, setStealthMode, safetySettings } = useAppContext();
   const [showSOS, setShowSOS] = useState(false);
   const [showLeadMagnet, setShowLeadMagnet] = useState(false);
+  const pathname = usePathname();
+  const isAdmin = pathname.startsWith('/admin');
 
   useShakeDetection(() => setStealthMode(true), safetySettings.quickExitTrigger === 'shake');
 
-  // Lead magnet popup after 30 seconds
+  // Lead magnet popup after 30 seconds (어드민에서는 비활성)
   useEffect(() => {
+    if (isAdmin) return;
     const timer = setTimeout(() => {
       if (!isStealthMode) {
         setShowLeadMagnet(true);
       }
     }, 30000);
     return () => clearTimeout(timer);
-  }, [isStealthMode]);
+  }, [isStealthMode, isAdmin]);
 
   const handleEnableStealthMode = useCallback(() => {
     setShowSOS(false);
@@ -161,6 +164,10 @@ function RootNavigator() {
         <Stack.Screen name="safety-checkin" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="restraining-order" options={{ headerShown: false, animation: 'slide_from_right' }} />
 
+        {/* Escort & Security */}
+        <Stack.Screen name="escort-service" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="security-partner" options={{ headerShown: false, animation: 'slide_from_right' }} />
+
         {/* M3: NCII Response */}
         <Stack.Screen name="ncii-response" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="takedown-templates" options={{ headerShown: false, animation: 'slide_from_right' }} />
@@ -185,14 +192,15 @@ function RootNavigator() {
 
         {/* M4F: Evidence Forensics */}
         <Stack.Screen name="evidence-forensics" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="police-report" options={{ headerShown: false, animation: 'slide_from_right' }} />
 
         {/* Landing & Hub */}
         <Stack.Screen name="landing" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="services-hub" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
 
-      {/* Floating SOS button — always visible */}
-      <FloatingSOS onPress={() => setShowSOS(true)} />
+      {/* Floating SOS button — 어드민 제외 */}
+      {!isAdmin && <FloatingSOS onPress={() => setShowSOS(true)} />}
 
       {/* SOS emergency modal */}
       <SOSModal

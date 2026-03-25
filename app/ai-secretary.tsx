@@ -18,7 +18,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOW } from '@/constants/theme';
 import { PHASE_LABELS, FIVE_W_ONE_H, EVIDENCE_CHECKLIST, CRISIS_KEYWORDS, MOCK_OPTIONS, MOCK_LEGAL_ANALYSIS } from '@/constants/ai-secretary';
-import { sendMessage, getCurrentPhase, getFactSummary, generateOptions } from '@/lib/ai-secretary';
+import { OPTION_A_FOLLOWUP_QUESTIONS } from '@/constants/letter-templates';
+import {
+  sendMessage, getCurrentPhase, getFactSummary, generateOptions,
+  startOptionAFlow, handleOptionAResponse, isOptionAComplete, getCollectedLetterData, getOptionACurrentIndex,
+} from '@/lib/ai-secretary';
 import { analyzeEmotion } from '@/hooks/useEmotionAnalysis';
 import { useAppContext } from '@/contexts/AppContext';
 import type { ChatMessage, EmotionState, CasePhase } from '@/types/database';
@@ -192,6 +196,12 @@ export default function AISecretaryScreen() {
 
   // Phase 5 tracking
   const [selectedOption, setSelectedOption] = useState<'A' | 'B' | null>(null);
+
+  // Option A follow-up tracking
+  const [optionAActive, setOptionAActive] = useState(false);
+  const [optionAQuestionIndex, setOptionAQuestionIndex] = useState(0);
+  const [optionADone, setOptionADone] = useState(false);
+  const [multiselectBuffer, setMultiselectBuffer] = useState<string[]>([]);
 
   const phaseLabels = Object.values(PHASE_LABELS);
 
@@ -373,13 +383,68 @@ export default function AISecretaryScreen() {
       setSelectedOption(option);
       const chosen = option === 'A' ? MOCK_OPTIONS.optionA : MOCK_OPTIONS.optionB;
       addUserMessage(`선택지 ${option}: ${chosen.title}`, 5);
-      botReply(
-        `${chosen.title}을(를) 선택하셨습니다.\n\n법률사무소 청송에서 구체적인 진행 절차를 안내해 드리겠습니다. 담당 변호사가 확인 후 연락드리겠습니다.`,
-        5,
-        TYPING_DELAY
-      );
+
+      if (option === 'A') {
+        // Option A: 경고장 → 후속 질문 흐름 시작
+        const firstMsg = startOptionAFlow(SESSION_ID);
+        setOptionAActive(true);
+        setOptionAQuestionIndex(0);
+        setMultiselectBuffer([]);
+        botReply(firstMsg.content, 5, TYPING_DELAY);
+      } else {
+        // Option B: 기존 흐름
+        botReply(
+          `${chosen.title}을(를) 선택하셨습니다.\n\n법률사무소 청송에서 구체적인 진행 절차를 안내해 드리겠습니다. 담당 변호사가 확인 후 연락드리겠습니다.`,
+          5,
+          TYPING_DELAY
+        );
+      }
     },
     [addUserMessage, botReply]
+  );
+
+  // ── Option A: follow-up answer handlers ──
+  const handleOptionAAnswer = useCallback(
+    (questionId: string, answer: string) => {
+      addUserMessage(answer, 5);
+      const response = handleOptionAResponse(SESSION_ID, questionId, answer);
+      const nextIdx = getOptionACurrentIndex(SESSION_ID);
+      setOptionAQuestionIndex(nextIdx);
+      setMultiselectBuffer([]);
+
+      if (isOptionAComplete(SESSION_ID)) {
+        setOptionADone(true);
+        setOptionAActive(false);
+        botReply(response.content, 5, TYPING_DELAY);
+      } else {
+        botReply(response.content, 5, TYPING_DELAY);
+      }
+    },
+    [addUserMessage, botReply]
+  );
+
+  const handleOptionASkip = useCallback(
+    (questionId: string) => {
+      handleOptionAAnswer(questionId, '(건너뜀)');
+    },
+    [handleOptionAAnswer]
+  );
+
+  const handleMultiselectConfirm = useCallback(
+    (questionId: string) => {
+      if (multiselectBuffer.length === 0) return;
+      handleOptionAAnswer(questionId, multiselectBuffer.join(', '));
+    },
+    [multiselectBuffer, handleOptionAAnswer]
+  );
+
+  const toggleMultiselectItem = useCallback(
+    (item: string) => {
+      setMultiselectBuffer((prev) =>
+        prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]
+      );
+    },
+    []
   );
 
   // ── Free-text send ──
@@ -425,6 +490,8 @@ export default function AISecretaryScreen() {
   const showPhase2Selection = currentPhase === 2 && fiveWStep < FIVE_W_ONE_H.length && !isTyping;
   const showPhase3Checklist = currentPhase === 3 && !evidenceSubmitted && !isTyping;
   const showPhase5Options = currentPhase === 5 && !selectedOption && !isTyping;
+  const showOptionAFollowup = optionAActive && !optionADone && !isTyping && optionAQuestionIndex < OPTION_A_FOLLOWUP_QUESTIONS.length;
+  const showOptionAComplete = optionADone && !isTyping;
   const showReviewBadge = currentPhase >= 4;
 
   return (
@@ -552,7 +619,7 @@ export default function AISecretaryScreen() {
             </View>
           )}
 
-          {/* Phase 5: A/B options */}
+          {/* Phase 5: A/B option selection buttons */}
           {showPhase5Options && !isPaused && (
             <View style={styles.optionsContainer}>
               <OptionCard
@@ -579,6 +646,234 @@ export default function AISecretaryScreen() {
                 selected={selectedOption === 'B'}
                 onPress={() => handleOptionSelect('B')}
               />
+
+              <View style={styles.optionButtonsRow}>
+                <TouchableOpacity
+                  style={styles.optionAButton}
+                  onPress={() => handleOptionSelect('A')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="document-text-outline" size={18} color={COLORS.white} style={{ marginRight: 6 }} />
+                  <Text style={styles.optionAButtonText}>선택지 A: 법률 경고장 발송</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.optionBButton}
+                  onPress={() => handleOptionSelect('B')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.white} style={{ marginRight: 6 }} />
+                  <Text style={styles.optionBButtonText}>선택지 B: 스토킹처벌법 법적 대응</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Option A: Follow-up question inputs */}
+          {showOptionAFollowup && !isPaused && (() => {
+            const q = OPTION_A_FOLLOWUP_QUESTIONS[optionAQuestionIndex];
+            if (!q) return null;
+
+            return (
+              <View style={styles.followupContainer}>
+                {/* Select type: option buttons */}
+                {q.type === 'select' && q.options && (
+                  <View style={styles.followupOptions}>
+                    {q.options.map((opt) => (
+                      <TouchableOpacity
+                        key={opt}
+                        style={styles.followupOptionBtn}
+                        onPress={() => handleOptionAAnswer(q.id, opt)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.followupOptionText}>{opt}</Text>
+                      </TouchableOpacity>
+                    ))}
+                    {!q.required && (
+                      <TouchableOpacity
+                        style={styles.followupSkipBtn}
+                        onPress={() => handleOptionASkip(q.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.followupSkipText}>건너뛰기</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+
+                {/* Multiselect type: toggleable chips */}
+                {q.type === 'multiselect' && q.options && (
+                  <View style={styles.followupOptions}>
+                    <View style={styles.followupChipsWrap}>
+                      {q.options.map((opt) => {
+                        const isSelected = multiselectBuffer.includes(opt);
+                        return (
+                          <TouchableOpacity
+                            key={opt}
+                            style={[
+                              styles.followupChip,
+                              isSelected && styles.followupChipSelected,
+                            ]}
+                            onPress={() => toggleMultiselectItem(opt)}
+                            activeOpacity={0.7}
+                          >
+                            <Text
+                              style={[
+                                styles.followupChipText,
+                                isSelected && styles.followupChipTextSelected,
+                              ]}
+                            >
+                              {opt}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.followupConfirmBtn,
+                        multiselectBuffer.length === 0 && styles.followupConfirmBtnDisabled,
+                      ]}
+                      onPress={() => handleMultiselectConfirm(q.id)}
+                      disabled={multiselectBuffer.length === 0}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.followupConfirmText}>
+                        {multiselectBuffer.length > 0
+                          ? `${multiselectBuffer.length}개 선택 완료`
+                          : '항목을 선택해주세요'}
+                      </Text>
+                    </TouchableOpacity>
+                    {!q.required && (
+                      <TouchableOpacity
+                        style={styles.followupSkipBtn}
+                        onPress={() => handleOptionASkip(q.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.followupSkipText}>건너뛰기</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+
+                {/* Text / textarea type: text input */}
+                {(q.type === 'text' || q.type === 'textarea') && (
+                  <View style={styles.followupTextInputWrap}>
+                    {q.helpText && (
+                      <Text style={styles.followupHelpText}>{q.helpText}</Text>
+                    )}
+                    <View style={styles.followupTextRow}>
+                      <TextInput
+                        style={[
+                          styles.followupTextInput,
+                          q.type === 'textarea' && styles.followupTextarea,
+                        ]}
+                        placeholder={q.placeholder || '입력해주세요...'}
+                        placeholderTextColor={COLORS.lightText}
+                        value={inputText}
+                        onChangeText={setInputText}
+                        multiline={q.type === 'textarea'}
+                        numberOfLines={q.type === 'textarea' ? 4 : 1}
+                        returnKeyType={q.type === 'textarea' ? 'default' : 'send'}
+                        onSubmitEditing={() => {
+                          if (q.type !== 'textarea' && inputText.trim()) {
+                            const val = inputText.trim();
+                            setInputText('');
+                            handleOptionAAnswer(q.id, val);
+                          }
+                        }}
+                      />
+                      <TouchableOpacity
+                        style={[styles.followupSendBtn, !inputText.trim() && styles.sendBtnDisabled]}
+                        onPress={() => {
+                          if (inputText.trim()) {
+                            const val = inputText.trim();
+                            setInputText('');
+                            handleOptionAAnswer(q.id, val);
+                          }
+                        }}
+                        disabled={!inputText.trim()}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="arrow-up" size={18} color={COLORS.white} />
+                      </TouchableOpacity>
+                    </View>
+                    {!q.required && (
+                      <TouchableOpacity
+                        style={styles.followupSkipBtn}
+                        onPress={() => handleOptionASkip(q.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.followupSkipText}>건너뛰기</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+
+                {/* Phone type: phone keyboard input */}
+                {q.type === 'phone' && (
+                  <View style={styles.followupTextInputWrap}>
+                    <View style={styles.followupTextRow}>
+                      <TextInput
+                        style={styles.followupTextInput}
+                        placeholder={q.placeholder || '010-0000-0000'}
+                        placeholderTextColor={COLORS.lightText}
+                        value={inputText}
+                        onChangeText={setInputText}
+                        keyboardType="phone-pad"
+                        returnKeyType="send"
+                        onSubmitEditing={() => {
+                          if (inputText.trim()) {
+                            const val = inputText.trim();
+                            setInputText('');
+                            handleOptionAAnswer(q.id, val);
+                          }
+                        }}
+                      />
+                      <TouchableOpacity
+                        style={[styles.followupSendBtn, !inputText.trim() && styles.sendBtnDisabled]}
+                        onPress={() => {
+                          if (inputText.trim()) {
+                            const val = inputText.trim();
+                            setInputText('');
+                            handleOptionAAnswer(q.id, val);
+                          }
+                        }}
+                        disabled={!inputText.trim()}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="arrow-up" size={18} color={COLORS.white} />
+                      </TouchableOpacity>
+                    </View>
+                    {!q.required && (
+                      <TouchableOpacity
+                        style={styles.followupSkipBtn}
+                        onPress={() => handleOptionASkip(q.id)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.followupSkipText}>건너뛰기</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
+            );
+          })()}
+
+          {/* Option A: Completion confirmation card */}
+          {showOptionAComplete && (
+            <View style={styles.completionCard}>
+              <View style={styles.completionIconRow}>
+                <Ionicons name="checkmark-circle" size={28} color={COLORS.sage} />
+              </View>
+              <Text style={styles.completionTitle}>경고장 초안 요청이 접수되었습니다</Text>
+              <Text style={styles.completionDesc}>
+                법률사무소 청송에서 수집된 정보를 바탕으로 경고장 초안을 작성합니다.{'\n'}
+                변호사 검토 후 1~2일 내에 결과를 안내드립니다.
+              </Text>
+              <View style={styles.completionStatusRow}>
+                <View style={styles.completionStatusDot} />
+                <Text style={styles.completionStatusText}>정보 수집 완료</Text>
+              </View>
             </View>
           )}
 
@@ -927,6 +1222,208 @@ const styles = StyleSheet.create({
   optionTime: {
     fontSize: FONT_SIZE.sm,
     color: COLORS.lightText,
+  },
+
+  // Phase 5 option quick-select buttons
+  optionButtonsRow: {
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
+  },
+  optionAButton: {
+    minHeight: 52,
+    backgroundColor: COLORS.gold,
+    borderRadius: RADIUS.md,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingHorizontal: SPACING.md,
+    ...SHADOW.sm,
+  },
+  optionAButtonText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700' as const,
+  },
+  optionBButton: {
+    minHeight: 52,
+    backgroundColor: COLORS.navy,
+    borderRadius: RADIUS.md,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    paddingHorizontal: SPACING.md,
+    ...SHADOW.sm,
+  },
+  optionBButtonText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700' as const,
+  },
+
+  // Option A follow-up
+  followupContainer: {
+    paddingHorizontal: SPACING.md,
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  followupOptions: {
+    gap: SPACING.sm,
+  },
+  followupOptionBtn: {
+    minHeight: 48,
+    backgroundColor: COLORS.cardBg,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm + 2,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    ...SHADOW.sm,
+  },
+  followupOptionText: {
+    color: COLORS.darkText,
+    fontSize: FONT_SIZE.md,
+    fontWeight: '500' as const,
+  },
+  followupChipsWrap: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: SPACING.xs + 2,
+  },
+  followupChip: {
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.cardBg,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+  },
+  followupChipSelected: {
+    backgroundColor: COLORS.gold,
+    borderColor: COLORS.gold,
+  },
+  followupChipText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.darkText,
+    fontWeight: '500' as const,
+  },
+  followupChipTextSelected: {
+    color: COLORS.white,
+  },
+  followupConfirmBtn: {
+    minHeight: 48,
+    backgroundColor: COLORS.gold,
+    borderRadius: RADIUS.md,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginTop: SPACING.xs,
+    ...SHADOW.sm,
+  },
+  followupConfirmBtnDisabled: {
+    opacity: 0.35,
+  },
+  followupConfirmText: {
+    color: COLORS.white,
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600' as const,
+  },
+  followupSkipBtn: {
+    alignItems: 'center' as const,
+    paddingVertical: SPACING.sm,
+    marginTop: 2,
+  },
+  followupSkipText: {
+    color: COLORS.slate,
+    fontSize: FONT_SIZE.sm,
+    fontWeight: '400' as const,
+    textDecorationLine: 'underline' as const,
+  },
+  followupHelpText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.slate,
+    marginBottom: SPACING.xs,
+    lineHeight: 19,
+  },
+  followupTextInputWrap: {
+    gap: SPACING.xs,
+  },
+  followupTextRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.sm,
+  },
+  followupTextInput: {
+    flex: 1,
+    minHeight: 44,
+    maxHeight: 100,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    fontSize: FONT_SIZE.md,
+    color: COLORS.darkText,
+    backgroundColor: COLORS.warmWhite,
+  },
+  followupTextarea: {
+    minHeight: 88,
+    maxHeight: 160,
+    textAlignVertical: 'top' as const,
+  },
+  followupSendBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.gold,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+
+  // Option A completion card
+  completionCard: {
+    marginHorizontal: SPACING.md,
+    marginTop: SPACING.md,
+    backgroundColor: COLORS.cardBg,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.sageLight,
+    padding: SPACING.md + 4,
+    alignItems: 'center' as const,
+    ...SHADOW.sm,
+  },
+  completionIconRow: {
+    marginBottom: SPACING.sm,
+  },
+  completionTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700' as const,
+    color: COLORS.darkText,
+    marginBottom: SPACING.xs,
+    textAlign: 'center' as const,
+  },
+  completionDesc: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.slate,
+    lineHeight: 20,
+    textAlign: 'center' as const,
+    marginBottom: SPACING.sm,
+  },
+  completionStatusRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: SPACING.xs,
+  },
+  completionStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.sage,
+  },
+  completionStatusText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.sage,
+    fontWeight: '600' as const,
   },
 
   // Footer branding

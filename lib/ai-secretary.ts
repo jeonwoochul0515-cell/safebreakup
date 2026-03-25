@@ -2,6 +2,7 @@
 // TODO: 실제 AI API 연동 시 교체
 
 import type { ChatMessage, CasePhase } from '@/types/database';
+import { OPTION_A_FOLLOWUP_QUESTIONS } from '@/constants/letter-templates';
 
 // 단계별 mock 응답
 const PHASE_RESPONSES: Record<CasePhase, string[]> = {
@@ -24,27 +25,54 @@ const PHASE_RESPONSES: Record<CasePhase, string[]> = {
   ],
   4: [
     '말씀하신 상황을 바탕으로 법률 분석 결과를 알려드리겠습니다.\n\n' +
-    '■ 적용 가능 법률:\n' +
-    '• 스토킹처벌법 제18조: 3년 이하 징역 또는 3천만원 이하 벌금\n' +
-    '• 정보통신망법 제44조의7: 불법 촬영물 유포 시 5년 이하 징역\n\n' +
+    '■ 적용 가능 법률 (2024.1.12 개정 시행):\n' +
+    '• 스토킹처벌법 제18조: 3년 이하 징역 / 3천만원 이하 벌금\n' +
+    '  → 흉기 사용 시 5년 이하 징역 / 5천만원 이하 벌금\n' +
+    '• 반의사불벌죄 폐지: 합의 없이도 처벌 진행\n' +
+    '• 전자발찌 부착 가능 (제9조 제3호의2 신설)\n' +
+    '• 성폭력처벌법 제14조의3: 촬영물 협박 시 1년 이상 징역\n\n' +
     '■ 유사 판례:\n' +
-    '• 2023도12345: 이별 후 반복 연락 → 스토킹죄 유죄, 징역 6개월\n' +
+    '• 대법원 2023.5.18.: 부재중 전화 수십 회 → 스토킹 성립\n' +
+    '• 2023도12345: 이별 후 반복 연락+미행 → 징역 6월, 집행유예 2년\n' +
     '• 2024고단678: 사진 유포 협박 → 징역 1년',
     '추가적인 법률 분석이 필요하시면 말씀해 주세요.',
   ],
   5: [
     '분석이 완료되었습니다. 두 가지 선택지를 준비했습니다.\n\n' +
     '【선택지 A: 법률 경고장 발송】\n' +
-    '• 변호사 명의 법률 경고장을 상대방에게 발송합니다\n' +
-    '• 비용: 49,000원 (이메일/SNS) 또는 99,000원 (내용증명)\n' +
-    '• 예상 효과: 대부분의 경우 경고장만으로 행위가 중단됩니다\n\n' +
-    '【선택지 B: 경찰 신고 + 접근금지 가처분】\n' +
-    '• 스토킹 신고 후 법원에 접근금지 가처분을 신청합니다\n' +
-    '• 비용: 변호사 상담 별도\n' +
-    '• 예상 효과: 법적 강제력 있는 접근금지 명령',
+    '• 변호사 명의 법률 경고장을 상대방에게 발송\n' +
+    '• 비용: 49,000원 (이메일/SNS) / 99,000원 (내용증명)\n' +
+    '• 대부분의 경우 경고장만으로 행위 중단\n' +
+    '• 추후 법적 대응의 증거로 활용 가능\n\n' +
+    '【선택지 B: 스토킹처벌법 기반 법적 대응】\n' +
+    '• 112 신고 → 긴급응급조치 즉시 발동 (100m 접근금지)\n' +
+    '• 법원 잠정조치: 접근금지 + 통신금지 + 전자발찌 (최대 9개월)\n' +
+    '• 피해자보호명령: 법원에 직접 신청 가능 (2024 신설)\n' +
+    '• 국선변호사 무료 선임 가능\n' +
+    '• 위반 시 2년 이하 징역 / 형사처벌 3년 이하 징역',
     '어떤 선택지를 원하시나요? 또는 추가 질문이 있으시면 말씀해 주세요.',
   ],
 };
+
+// Option A 후속 질문 세션 상태
+const optionAState = new Map<string, {
+  currentQuestionIndex: number;
+  answers: Record<string, string>;
+  started: boolean;
+  complete: boolean;
+}>();
+
+function getOrCreateOptionASession(sessionId: string) {
+  if (!optionAState.has(sessionId)) {
+    optionAState.set(sessionId, {
+      currentQuestionIndex: 0,
+      answers: {},
+      started: false,
+      complete: false,
+    });
+  }
+  return optionAState.get(sessionId)!;
+}
 
 // 세션별 상태 저장 (메모리 내 mock)
 const sessionState = new Map<string, {
@@ -122,7 +150,111 @@ export function generateOptions(sessionId: string): { optionA: string; optionB: 
       '변호사 명의 법률 경고장 발송 (이메일/SNS: 49,000원, 내용증명: 99,000원)\n' +
       '→ 법적 의사표시 기록, 대부분 경고장으로 행위 중단',
     optionB:
-      '경찰 신고 + 접근금지 가처분 신청\n' +
-      '→ 법적 강제력, 위반 시 처벌 가능',
+      '스토킹처벌법 기반 법적 대응 3단계\n' +
+      '→ 112 신고 → 긴급응급조치(즉시 접근금지) → 잠정조치(전자발찌 + 최대 9개월)\n' +
+      '→ 피해자보호명령 법원 직접 신청 가능 (2024 신설)\n' +
+      '→ 국선변호사 무료, 반의사불벌죄 폐지로 합의 압박 차단',
   };
+}
+
+// ─── Option A 후속 질문 흐름 ────────────────────────────────────
+
+/**
+ * Option A 후속 질문 흐름 시작 → 첫 번째 질문 반환
+ */
+export function startOptionAFlow(sessionId: string): ChatMessage {
+  const session = getOrCreateOptionASession(sessionId);
+  session.started = true;
+  session.currentQuestionIndex = 0;
+  session.answers = {};
+  session.complete = false;
+
+  const firstQuestion = OPTION_A_FOLLOWUP_QUESTIONS[0];
+
+  return {
+    id: `msg-optA-${Date.now()}`,
+    conversation_id: sessionId,
+    role: 'assistant',
+    content: `감사합니다. 경고장 작성에 필요한 몇 가지 정보를 여쭤볼게요. 불편하시면 건너뛸 수 있습니다.\n\n${firstQuestion.question}`,
+    phase: 5,
+    created_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * Option A 후속 질문 응답 처리 → 다음 질문 또는 완료 메시지 반환
+ */
+export function handleOptionAResponse(
+  sessionId: string,
+  questionId: string,
+  answer: string
+): ChatMessage {
+  const session = getOrCreateOptionASession(sessionId);
+
+  // 답변 저장
+  session.answers[questionId] = answer;
+
+  // 다음 질문 인덱스
+  const nextIndex = session.currentQuestionIndex + 1;
+  session.currentQuestionIndex = nextIndex;
+
+  // 모든 질문 완료
+  if (nextIndex >= OPTION_A_FOLLOWUP_QUESTIONS.length) {
+    session.complete = true;
+    return {
+      id: `msg-optA-${Date.now()}`,
+      conversation_id: sessionId,
+      role: 'assistant',
+      content:
+        '필요한 정보가 모두 수집되었습니다. 법률사무소 청송에서 경고장 초안을 작성하여 검토 후 발송해 드리겠습니다. 변호사 검토 후 1~2일 내에 결과를 안내드립니다.',
+      phase: 5,
+      created_at: new Date().toISOString(),
+    };
+  }
+
+  // 다음 질문
+  const nextQuestion = OPTION_A_FOLLOWUP_QUESTIONS[nextIndex];
+  const ackPhrases = ['확인했습니다.', '감사합니다.'];
+  const ack = ackPhrases[nextIndex % ackPhrases.length];
+
+  return {
+    id: `msg-optA-${Date.now()}`,
+    conversation_id: sessionId,
+    role: 'assistant',
+    content: `${ack}\n\n${nextQuestion.question}`,
+    phase: 5,
+    created_at: new Date().toISOString(),
+  };
+}
+
+/**
+ * Option A 후속 질문이 모두 완료되었는지 확인
+ */
+export function isOptionAComplete(sessionId: string): boolean {
+  const session = optionAState.get(sessionId);
+  return session?.complete ?? false;
+}
+
+/**
+ * Option A 에서 수집된 모든 답변 반환
+ */
+export function getCollectedLetterData(sessionId: string): Record<string, string> {
+  const session = optionAState.get(sessionId);
+  return session?.answers ?? {};
+}
+
+/**
+ * 현재 Option A 질문 인덱스 반환
+ */
+export function getOptionACurrentIndex(sessionId: string): number {
+  const session = optionAState.get(sessionId);
+  return session?.currentQuestionIndex ?? 0;
+}
+
+/**
+ * Option A 흐름이 시작되었는지 확인
+ */
+export function isOptionAStarted(sessionId: string): boolean {
+  const session = optionAState.get(sessionId);
+  return session?.started ?? false;
 }

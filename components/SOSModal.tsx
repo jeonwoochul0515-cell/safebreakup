@@ -26,6 +26,12 @@ const CONTACTS = [
     bg: COLORS.coral,
   },
   {
+    label: 'ADT캡스 긴급출동',
+    number: '1588-5400',
+    icon: '🚨',
+    bg: '#0066CC',
+  },
+  {
     label: '여성긴급전화',
     number: '1366',
     icon: '📞',
