@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import { generateResponse } from '@/lib/legal-chatbot';
 import {
   View,
   Text,
@@ -199,7 +200,7 @@ export default function LegalInfoScreen() {
     [isTyping, addBotMessage, scrollToBottom],
   );
 
-  // Handle free text send — 공감형 대화 흐름
+  // Handle free text send — AI 법률 챗봇 엔진 v2
   const handleSend = useCallback(() => {
     const trimmed = inputText.trim();
     if (!trimmed || isTyping) return;
@@ -214,36 +215,16 @@ export default function LegalInfoScreen() {
     setInputText('');
     scrollToBottom();
 
-    // 1) 키워드 매칭으로 공감 응답
-    const empathy = findEmpathyResponse(trimmed);
-    if (empathy) {
-      setConversationCategory(empathy.category);
-      setFollowUpIndex(0);
-      addBotMessage(`${empathy.empathy}\n\n${empathy.followUp}`, () => scrollToBottom());
-      return;
-    }
-
-    // 2) 이미 카테고리가 설정된 경우 후속 응답
-    if (conversationCategory && FOLLOW_UP_RESPONSES[conversationCategory]) {
-      const responses = FOLLOW_UP_RESPONSES[conversationCategory];
-      const idx = Math.min(followUpIndex, responses.length - 1);
-      setFollowUpIndex((prev) => prev + 1);
-
-      addBotMessage(responses[idx], () => {
-        if (idx >= responses.length - 1) {
-          setShowConsultButton(true);
-        }
-        scrollToBottom();
-      });
-      return;
-    }
-
-    // 3) 매칭 안 되면 공감 + 안내
-    addBotMessage(
-      '말씀해주셔서 감사합니다. 조금 더 구체적으로 알려주시면 더 정확한 안내를 드릴 수 있어요.\n\n예를 들어:\n• "자꾸 따라다녀요" (스토킹)\n• "사진을 퍼뜨리겠다고 해요" (디지털 성범죄)\n• "때린 적이 있어요" (폭행)\n• "헤어지고 싶어요" (이별 준비)\n\n어떤 상황이신가요?',
-      () => scrollToBottom()
-    );
-  }, [inputText, isTyping, addBotMessage, scrollToBottom, conversationCategory, followUpIndex]);
+    // AI 챗봇 엔진으로 응답 생성
+    const response = generateResponse('legal-chat-session', trimmed);
+    addBotMessage(response, () => {
+      // 3번째 질문 이후 상담 버튼 표시
+      if (messages.length > 6) {
+        setShowConsultButton(true);
+      }
+      scrollToBottom();
+    });
+  }, [inputText, isTyping, addBotMessage, scrollToBottom, messages.length]);
 
   // Show disclaimer
   const showDisclaimer = () => {

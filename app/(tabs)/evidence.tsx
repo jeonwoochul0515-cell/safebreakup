@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOW } from '@/constants/theme';
+import {
+  createEvidence,
+  loadAllEvidence,
+  deleteEvidence as deleteSecureEvidence,
+  decryptContent,
+  verifyIntegrity,
+  type SecureEvidenceItem,
+  type EvidenceCategory as SecureCategory,
+} from '@/lib/secure-evidence';
 
 // ─── Types ───────────────────────────────────────────────────────
 type EvidenceType = 'image' | 'audio' | 'text' | 'file';
@@ -193,46 +203,145 @@ function SwipeableEvidenceCard({
 export default function EvidenceScreen() {
   const insets = useSafeAreaInsets();
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
+  const [secureEvidence, setSecureEvidence] = useState<SecureEvidenceItem[]>([]);
   const [memoModalVisible, setMemoModalVisible] = useState(false);
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [addType, setAddType] = useState<EvidenceType>('text');
   const [memoTitle, setMemoTitle] = useState('');
   const [memoContent, setMemoContent] = useState('');
+  const [addCategory, setAddCategory] = useState<SecureCategory>('기타');
+
+  // 앱 시작 시 저장된 증거 로드
+  useEffect(() => {
+    loadAllEvidence().then((items) => {
+      setSecureEvidence(items);
+      // 호환성: SecureEvidenceItem → EvidenceItem 변환
+      const converted: EvidenceItem[] = items.map(item => ({
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        timestamp: new Date(item.timestamp),
+        category: item.category,
+        preview: item.type === 'text' ? decryptContent(item).substring(0, 100) : undefined,
+      }));
+      setEvidence(converted);
+    });
+  }, []);
 
   const nextId = useRef(1);
 
   // ─── Handlers ────────────────────────────────────────────────
-  const showComingSoon = useCallback(() => {
-    Alert.alert('알림', '이 기능은 서비스 출시 후 이용 가능합니다');
+  const CATEGORIES: SecureCategory[] = ['협박', '스토킹', '폭행', '유포', '대화', '기타'];
+
+  const saveEvidence = useCallback(async (type: EvidenceType, title: string, content: string, category: SecureCategory, method: string) => {
+    try {
+      const secureItem = await createEvidence({
+        type,
+        title: title || `증거 #${nextId.current++}`,
+        content,
+        category,
+        captureMethod: method,
+      });
+      // UI 업데이트
+      const uiItem: EvidenceItem = {
+        id: secureItem.id,
+        type: secureItem.type,
+        title: secureItem.title,
+        timestamp: new Date(secureItem.timestamp),
+        category: secureItem.category,
+        preview: type === 'text' ? content.substring(0, 100) : undefined,
+      };
+      setEvidence((prev) => [uiItem, ...prev]);
+      setSecureEvidence((prev) => [secureItem, ...prev]);
+
+      Alert.alert(
+        '증거 저장 완료',
+        `SHA-256 해시가 생성되었습니다.\n\n해시: ${secureItem.sha256Hash.substring(0, 16)}...\n시각: ${new Date(secureItem.timestamp).toLocaleString('ko-KR')}\n\n이 증거는 암호화되어 안전하게 보관됩니다.`
+      );
+    } catch (err) {
+      Alert.alert('오류', '증거 저장에 실패했습니다. 다시 시도해주세요.');
+    }
   }, []);
 
   const addTextMemo = useCallback(() => {
     if (!memoContent.trim()) return;
-    const item: EvidenceItem = {
-      id: String(nextId.current++),
-      type: 'text',
-      title: memoTitle.trim() || `증거 #${nextId.current - 1}`,
-      timestamp: new Date(),
-      preview: memoContent.trim(),
-      category: '텍스트 메모',
-    };
-    setEvidence((prev) => [item, ...prev]);
+    saveEvidence('text', memoTitle.trim(), memoContent.trim(), addCategory, 'manual');
     setMemoTitle('');
     setMemoContent('');
+    setAddCategory('기타');
     setMemoModalVisible(false);
-  }, [memoTitle, memoContent]);
+  }, [memoTitle, memoContent, addCategory, saveEvidence]);
 
-  const deleteItem = useCallback((id: string) => {
+  const handleAddImage = useCallback(() => {
+    // TODO: expo-image-picker 연동
+    Alert.prompt ? Alert.prompt(
+      '사진/스크린샷 증거',
+      '증거 설명을 입력하세요 (예: 카카오톡 협박 메시지 캡처)',
+      [
+        { text: '취소', style: 'cancel' },
+        {
+          text: '저장',
+          onPress: (desc?: string) => {
+            if (desc?.trim()) {
+              saveEvidence('image', desc.trim(), `[사진 증거] ${desc.trim()} — 캡처 시각: ${new Date().toISOString()}`, addCategory, 'screenshot');
+            }
+          },
+        },
+      ],
+      'plain-text'
+    ) : (() => {
+      setAddType('image');
+      setAddModalVisible(true);
+    })();
+  }, [addCategory, saveEvidence]);
+
+  const handleAddAudio = useCallback(() => {
+    setAddType('audio');
+    setAddModalVisible(true);
+  }, []);
+
+  const handleAddFile = useCallback(() => {
+    setAddType('file');
+    setAddModalVisible(true);
+  }, []);
+
+  const handleAddModalSave = useCallback(() => {
+    if (!memoContent.trim()) {
+      Alert.alert('알림', '증거 설명을 입력해주세요.');
+      return;
+    }
+    const typeLabels: Record<EvidenceType, string> = {
+      image: '사진/스크린샷',
+      audio: '음성 녹음',
+      text: '텍스트 메모',
+      file: '파일',
+    };
+    saveEvidence(addType, memoTitle.trim() || `${typeLabels[addType]} 증거`, memoContent.trim(), addCategory, 'manual');
+    setMemoTitle('');
+    setMemoContent('');
+    setAddCategory('기타');
+    setAddModalVisible(false);
+  }, [addType, memoTitle, memoContent, addCategory, saveEvidence]);
+
+  const deleteItem = useCallback(async (id: string) => {
+    await deleteSecureEvidence(id);
     setEvidence((prev) => prev.filter((e) => e.id !== id));
+    setSecureEvidence((prev) => prev.filter((e) => e.id !== id));
   }, []);
 
   const handleUpload = useCallback(
     (type: EvidenceType) => {
       if (type === 'text') {
         setMemoModalVisible(true);
+      } else if (type === 'image') {
+        handleAddImage();
+      } else if (type === 'audio') {
+        handleAddAudio();
       } else {
-        showComingSoon();
+        handleAddFile();
       }
     },
-    [showComingSoon]
+    [handleAddImage, handleAddAudio, handleAddFile]
   );
 
   // ─── Derived data ────────────────────────────────────────────
@@ -341,7 +450,7 @@ export default function EvidenceScreen() {
           activeOpacity={isEmpty ? 1 : 0.7}
           onPress={() => {
             if (isEmpty) return;
-            showComingSoon();
+            router.push('/police-report' as any);
           }}
         >
           <Ionicons
@@ -403,26 +512,117 @@ export default function EvidenceScreen() {
             />
             <Text style={styles.charCount}>{memoContent.length} / 5,000</Text>
 
+            <Text style={styles.inputLabel}>분류</Text>
+            <View style={styles.categoryRow}>
+              {CATEGORIES.map((cat) => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[styles.categoryChip, addCategory === cat && styles.categoryChipActive]}
+                  onPress={() => setAddCategory(cat)}
+                >
+                  <Text style={[styles.categoryChipText, addCategory === cat && styles.categoryChipTextActive]}>{cat}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.securityNote}>
+              <Ionicons name="lock-closed" size={14} color={COLORS.sage} />
+              <Text style={styles.securityNoteText}>SHA-256 해시 생성 + 암호화 저장</Text>
+            </View>
+
             <TouchableOpacity
-              style={[
-                styles.saveButton,
-                !memoContent.trim() && styles.saveButtonDisabled,
-              ]}
+              style={[styles.saveButton, !memoContent.trim() && styles.saveButtonDisabled]}
               activeOpacity={memoContent.trim() ? 0.7 : 1}
               onPress={addTextMemo}
             >
-              <Ionicons
-                name="checkmark-circle"
-                size={20}
-                color={memoContent.trim() ? COLORS.white : COLORS.lightText}
-              />
-              <Text
-                style={[
-                  styles.saveButtonText,
-                  !memoContent.trim() && styles.saveButtonTextDisabled,
-                ]}
-              >
-                증거 저장하기
+              <Ionicons name="shield-checkmark" size={20} color={memoContent.trim() ? COLORS.white : COLORS.lightText} />
+              <Text style={[styles.saveButtonText, !memoContent.trim() && styles.saveButtonTextDisabled]}>
+                암호화 저장하기
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── 범용 증거 추가 Modal ─────────────────────────────── */}
+      <Modal
+        visible={addModalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setAddModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, SPACING.lg) }]}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {addType === 'image' ? '사진/스크린샷 증거' : addType === 'audio' ? '음성 녹음 증거' : '파일 증거'}
+              </Text>
+              <TouchableOpacity onPress={() => setAddModalVisible(false)} style={styles.modalCloseButton}>
+                <Ionicons name="close" size={22} color={COLORS.darkText} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.inputLabel}>증거 제목</Text>
+            <TextInput
+              style={styles.titleInput}
+              placeholder={addType === 'image' ? '예: 카카오톡 협박 메시지 캡처' : addType === 'audio' ? '예: 전화 통화 녹음' : '예: CCTV 영상 파일'}
+              placeholderTextColor={COLORS.lightText}
+              value={memoTitle}
+              onChangeText={setMemoTitle}
+              maxLength={100}
+            />
+
+            <Text style={styles.inputLabel}>증거 설명 (상세히 기록해주세요)</Text>
+            <TextInput
+              style={styles.contentInput}
+              placeholder="날짜, 시간, 장소, 상대방의 행동, 맥락 등을 상세히 기록해주세요. 구체적일수록 법적 효력이 높아집니다."
+              placeholderTextColor={COLORS.lightText}
+              value={memoContent}
+              onChangeText={setMemoContent}
+              multiline
+              textAlignVertical="top"
+              maxLength={5000}
+            />
+
+            <Text style={styles.inputLabel}>분류</Text>
+            <View style={styles.categoryRow}>
+              {CATEGORIES.map((cat) => (
+                <TouchableOpacity
+                  key={cat}
+                  style={[styles.categoryChip, addCategory === cat && styles.categoryChipActive]}
+                  onPress={() => setAddCategory(cat)}
+                >
+                  <Text style={[styles.categoryChipText, addCategory === cat && styles.categoryChipTextActive]}>{cat}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {addType !== 'text' && (
+              <View style={styles.fileAttachNote}>
+                <Ionicons name="information-circle" size={16} color={COLORS.blue} />
+                <Text style={styles.fileAttachNoteText}>
+                  {addType === 'image' ? '갤러리에서 사진을 선택하거나 카메라로 촬영합니다.' :
+                   addType === 'audio' ? '녹음 파일을 선택하거나 새로 녹음합니다.' :
+                   '파일을 선택하여 첨부합니다.'}
+                  {'\n'}(파일 첨부는 Supabase 연동 후 활성화됩니다. 현재는 텍스트 설명이 증거로 저장됩니다.)
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.securityNote}>
+              <Ionicons name="lock-closed" size={14} color={COLORS.sage} />
+              <Text style={styles.securityNoteText}>SHA-256 해시 생성 + 암호화 저장</Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.saveButton, !memoContent.trim() && styles.saveButtonDisabled]}
+              activeOpacity={memoContent.trim() ? 0.7 : 1}
+              onPress={handleAddModalSave}
+            >
+              <Ionicons name="shield-checkmark" size={20} color={memoContent.trim() ? COLORS.white : COLORS.lightText} />
+              <Text style={[styles.saveButtonText, !memoContent.trim() && styles.saveButtonTextDisabled]}>
+                암호화 저장하기
               </Text>
             </TouchableOpacity>
           </View>
@@ -868,5 +1068,60 @@ const styles = StyleSheet.create({
   },
   saveButtonTextDisabled: {
     color: COLORS.lightText,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: SPACING.md,
+  },
+  categoryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+    marginRight: SPACING.xs,
+    marginBottom: SPACING.xs,
+  },
+  categoryChipActive: {
+    backgroundColor: COLORS.gold + '18',
+    borderColor: COLORS.gold,
+  },
+  categoryChipText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.lightText,
+  },
+  categoryChipTextActive: {
+    color: COLORS.gold,
+    fontWeight: '600',
+  },
+  securityNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.sage + '10',
+    borderRadius: RADIUS.sm,
+    padding: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  securityNoteText: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.sage,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  fileAttachNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: COLORS.blue + '08',
+    borderRadius: RADIUS.sm,
+    padding: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  fileAttachNoteText: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.slate,
+    marginLeft: 6,
+    flex: 1,
+    lineHeight: 18,
   },
 });

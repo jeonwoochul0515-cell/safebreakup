@@ -304,7 +304,7 @@ export default function HomeScreen() {
               { title: '트라우마 회복', sub: '그라운딩 & 호흡법', icon: 'heart' as const, color: COLORS.sage, route: '/grounding', isNew: true },
               { title: '증거 포렌식', sub: 'SHA-256 무결성 보장', icon: 'finger-print' as const, color: COLORS.gold, route: '/evidence-forensics', isNew: true },
               { title: '이별 안전 경호', sub: '전문 경호원 현장 동행', icon: 'shield' as const, color: COLORS.coralDark, route: '/escort-service', isNew: true },
-              { title: 'ADT캡스 안심팩', sub: 'SOS→긴급출동 연계', icon: 'shield-checkmark' as const, color: '#0066CC', route: '/security-partner', isNew: true },
+              // { title: 'ADT캡스 안심팩', sub: 'SOS→긴급출동 연계', icon: 'shield-checkmark' as const, color: '#0066CC', route: '/security-partner', isNew: true },
             ].map((m, i) => (
               <TouchableOpacity key={i} style={styles.v3Card} onPress={() => router.push(m.route as any)} activeOpacity={0.75}>
                 {m.isNew && <View style={styles.v3NewBadge}><Text style={styles.v3NewText}>NEW</Text></View>}
