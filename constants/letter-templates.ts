@@ -120,7 +120,7 @@ export const OPTION_A_FOLLOWUP_QUESTIONS = [
       '목격자 진술',
       '경찰 신고 기록',
       '진단서/의료 기록',
-      '이별방패 증거보관함 기록',
+      '안전이별 증거보관함 기록',
     ],
     required: true,
   },

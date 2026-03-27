@@ -270,7 +270,7 @@ export default function AISecretaryScreen() {
   // ── Initial bot greeting ──
   useEffect(() => {
     botReply(
-      '안녕하세요, 이별방패 법률 사무장입니다.\n\n먼저 지금 안전한 곳에 계신지 확인드려도 될까요?',
+      '안녕하세요, 안전이별 법률 사무장입니다.\n\n먼저 지금 안전한 곳에 계신지 확인드려도 될까요?',
       1,
       800
     );

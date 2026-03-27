@@ -131,7 +131,7 @@ export const SECRET_SAVINGS_TIPS = [
   },
   {
     title: '디지털 흔적 관리',
-    description: '비밀 계좌의 앱을 설치하지 않거나, 이별방패 은밀모드 안에서만 접근하세요. 브라우저 기록을 삭제하세요.',
+    description: '비밀 계좌의 앱을 설치하지 않거나, 안전이별 은밀모드 안에서만 접근하세요. 브라우저 기록을 삭제하세요.',
     icon: 'eye-off' as const,
     warning: '자동 로그인, 알림 설정을 반드시 해제하세요.',
   },

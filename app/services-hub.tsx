@@ -153,7 +153,7 @@ export default function ServicesHubScreen() {
 
   return (
     <View style={styles.root}>
-      <PageHeader title="전체 서비스" subtitle="이별방패 보호 모듈" showBack />
+      <PageHeader title="전체 서비스" subtitle="안전이별 보호 모듈" showBack />
 
       {/* Search bar */}
       <View style={styles.searchWrap}>

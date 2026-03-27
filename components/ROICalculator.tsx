@@ -20,7 +20,7 @@ export default function ROICalculator({ monthlyPrice }: ROICalculatorProps) {
       </Text>
       <View style={styles.divider} />
       <Text style={styles.comparison}>
-        전문 변호사 상담 1회 30만원+ {'\u2192'} 이별방패 월 {formattedMonthly}원
+        전문 변호사 상담 1회 30만원+ {'\u2192'} 안전이별 월 {formattedMonthly}원
       </Text>
     </View>
   );

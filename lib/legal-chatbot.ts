@@ -89,7 +89,7 @@ const LEGAL_KNOWLEDGE: Record<string, { laws: string; penalty: string; keyPoints
       '모든 접촉을 기록하세요 (날짜, 시간, 방법, 내용)',
       '문자/카톡은 반드시 캡처해두세요',
       '112에 신고하면 긴급응급조치가 즉시 발동됩니다',
-      '이별방패에서 스토킹 사건 기록을 시작하세요',
+      '안전이별에서 스토킹 사건 기록을 시작하세요',
       '변호사 경고장을 발송하면 대부분 행위가 중단됩니다',
     ],
   },
@@ -125,7 +125,7 @@ const LEGAL_KNOWLEDGE: Record<string, { laws: string; penalty: string; keyPoints
       'D4U센터(02-735-8994)에 즉시 연락하세요',
       '가해자의 요구에 절대 응하지 마세요',
       '경찰에 신고하세요 (112)',
-      '이별방패에서 삭제 요청 템플릿을 사용하세요',
+      '안전이별에서 삭제 요청 템플릿을 사용하세요',
     ],
   },
   violence: {
@@ -184,7 +184,7 @@ const LEGAL_KNOWLEDGE: Record<string, { laws: string; penalty: string; keyPoints
     ],
     actionSteps: [
       '모든 금전 거래 내역을 확보하세요',
-      '이별방패 경제적 학대 자가진단을 해보세요',
+      '안전이별 경제적 학대 자가진단을 해보세요',
       '비밀 계좌를 준비하세요',
       '정부 지원 프로그램을 확인하세요',
     ],
@@ -214,7 +214,7 @@ const LEGAL_KNOWLEDGE: Record<string, { laws: string; penalty: string; keyPoints
       '혼자 감당하지 않아도 됩니다',
     ],
     actionSteps: [
-      '이별방패 그라운딩 & 호흡법을 사용해보세요',
+      '안전이별 그라운딩 & 호흡법을 사용해보세요',
       '1366 여성긴급전화 (24시간) 상담 가능',
       '전문 상담사 연결도 가능합니다',
     ],
@@ -387,7 +387,7 @@ export function generateResponse(sessionId: string, userMessage: string): string
       }
     }
 
-    response += '\n이별방패에서 바로 도와드릴 수 있습니다:\n';
+    response += '\n안전이별에서 바로 도와드릴 수 있습니다:\n';
     response += '✅ 변호사 명의 법률 경고장 발송 (49,000원~)\n';
     response += '✅ 경찰 제출용 증거 보고서 작성 (99,000원)\n';
     response += '✅ 증거 수집 & 포렌식 보관\n';
@@ -425,7 +425,7 @@ export function generateResponse(sessionId: string, userMessage: string): string
       response += '👉 AI 사무장에서 바로 시작하시겠어요?';
     } else if (lower.includes('증거') || lower.includes('기록') || lower.includes('보관')) {
       response = '증거 수집부터 시작하는 건 아주 좋은 판단이에요.\n\n';
-      response += '이별방패 증거보관함에서:\n';
+      response += '안전이별 증거보관함에서:\n';
       response += '• 텍스트/사진/음성/파일 저장 가능\n';
       response += '• SHA-256 해시로 무결성 자동 보장\n';
       response += '• 타임스탬프 자동 기록\n';
@@ -441,7 +441,7 @@ export function generateResponse(sessionId: string, userMessage: string): string
       response += '• 증거 정리 (캡처, 녹음 등)\n';
       response += '• 피해 사실 정리 (날짜, 횟수)\n';
       response += '• 신분증 지참\n\n';
-      response += '이별방패에서 경찰 제출용 보고서를 만들어드릴까요? (99,000원)';
+      response += '안전이별에서 경찰 제출용 보고서를 만들어드릴까요? (99,000원)';
     } else if (lower.includes('상담') || lower.includes('변호사')) {
       response = '전문가 상담은 현명한 선택이에요.\n\n';
       response += '📞 무료 상담:\n';
@@ -481,7 +481,7 @@ export function generateResponse(sessionId: string, userMessage: string): string
   } else {
     response = '네, 알겠습니다. ';
     response += '더 궁금하신 점이 있으시면 언제든 물어보세요. ';
-    response += '이별방패가 끝까지 함께하겠습니다. 💛';
+    response += '안전이별가 끝까지 함께하겠습니다. 💛';
   }
 
   ctx.messages.push({ role: 'bot', text: response });

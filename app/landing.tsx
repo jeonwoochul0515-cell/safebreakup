@@ -144,7 +144,7 @@ const FAQ_ITEMS = [
   },
   {
     q: '수집한 증거가 법적 효력이 있나요?',
-    a: '네. 이별방패에서 보관하는 증거는 타임스탬프와 해시값이 자동 생성되어 위변조 여부를 검증할 수 있습니다. 변호사가 직접 검토하여 법정에서 활용 가능한 형태로 정리해 드립니다.',
+    a: '네. 안전이별에서 보관하는 증거는 타임스탬프와 해시값이 자동 생성되어 위변조 여부를 검증할 수 있습니다. 변호사가 직접 검토하여 법정에서 활용 가능한 형태로 정리해 드립니다.',
   },
   {
     q: '내 개인정보는 안전한가요?',
@@ -243,7 +243,7 @@ export default function LandingScreen() {
         {/* SECTION 2 — STATS (navy bg)                                       */}
         {/* ================================================================ */}
         <View style={styles.statsSection}>
-          <Text style={styles.statsSectionTitle}>왜 이별방패가 필요한가요?</Text>
+          <Text style={styles.statsSectionTitle}>왜 안전이별가 필요한가요?</Text>
           <Text style={styles.statsSectionSub}>
             대한민국의 현실, 숫자로 말합니다
           </Text>
@@ -331,7 +331,7 @@ export default function LandingScreen() {
         <View style={styles.testimonialSection}>
           <Text style={styles.sectionHeading}>실제 이용 후기</Text>
           <Text style={styles.sectionSubheading}>
-            이별방패와 함께한 분들의 변화
+            안전이별와 함께한 분들의 변화
           </Text>
 
           {TESTIMONIALS_BA.map((t, idx) => (
@@ -589,7 +589,7 @@ export default function LandingScreen() {
           </View>
 
           <Text style={styles.footerCopy}>
-            © 2026 이별방패 · 법률사무소 청송{'\n'}All rights reserved.
+            © 2026 안전이별 · 법률사무소 청송{'\n'}All rights reserved.
           </Text>
         </View>
       </ScrollView>

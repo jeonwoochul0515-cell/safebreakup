@@ -73,7 +73,7 @@ function decrypt(ciphertext: string): string {
 // ─── 디바이스 정보 ───────────────────────────────────────────
 
 function getDeviceInfo(): string {
-  return `이별방패 앱 v3.0 / ${new Date().toISOString()}`;
+  return `안전이별 앱 v3.0 / ${new Date().toISOString()}`;
 }
 
 // ─── 공개 API ────────────────────────────────────────────────

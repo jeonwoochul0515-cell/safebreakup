@@ -1,4 +1,4 @@
-// 이별방패 데이터베이스 타입 정의
+// 안전이별 데이터베이스 타입 정의
 
 /** 감정 상태 */
 export type EmotionState = 'crisis' | 'distressed' | 'anxious' | 'calm';

@@ -359,7 +359,7 @@ export default function OnboardingScreen() {
   const renderStep4QuickGuide = () => (
     <View style={[styles.page, { paddingTop: insets.top + 60 }]}>
       <Text style={styles.stepLabel}>STEP 3</Text>
-      <Text style={styles.heading}>이별방패가{'\n'}도와드릴 수 있는 것</Text>
+      <Text style={styles.heading}>안전이별가{'\n'}도와드릴 수 있는 것</Text>
 
       <View style={styles.guideCardsContainer}>
         {QUICK_GUIDE_CARDS.map((card, idx) => (

@@ -23,10 +23,10 @@ export const ANSIM_PACK_TIERS = [
     id: 'basic',
     name: '안심 베이직',
     monthlyPrice: '34,800원/월',
-    description: '이별방패 케어 + 캡스 긴급출동',
+    description: '안전이별 케어 + 캡스 긴급출동',
     color: '#6B8CC7',
     includes: [
-      { item: '이별방패 케어 구독', value: '4,900원/월', included: true },
+      { item: '안전이별 케어 구독', value: '4,900원/월', included: true },
       { item: 'ADT캡스 긴급출동 서비스', value: '29,900원/월', included: true },
       { item: 'SOS → 캡스 출동 자동 연계', value: '', included: true },
       { item: '안전 체크인 미응답 → 출동', value: '', included: true },
@@ -43,7 +43,7 @@ export const ANSIM_PACK_TIERS = [
     description: '베이직 + CCTV + 스마트 도어락',
     color: '#C4956A',
     includes: [
-      { item: '이별방패 케어 구독', value: '4,900원/월', included: true },
+      { item: '안전이별 케어 구독', value: '4,900원/월', included: true },
       { item: 'ADT캡스 긴급출동 서비스', value: '29,900원/월', included: true },
       { item: 'SOS → 캡스 출동 자동 연계', value: '', included: true },
       { item: '안전 체크인 미응답 → 출동', value: '', included: true },
@@ -61,7 +61,7 @@ export const ANSIM_PACK_TIERS = [
     description: '올인원 + 야간순찰 + 신변보호',
     color: '#8B6F8E',
     includes: [
-      { item: '이별방패 케어 구독', value: '4,900원/월', included: true },
+      { item: '안전이별 케어 구독', value: '4,900원/월', included: true },
       { item: 'ADT캡스 긴급출동 서비스', value: '29,900원/월', included: true },
       { item: 'SOS → 캡스 출동 자동 연계', value: '', included: true },
       { item: '안전 체크인 미응답 → 출동', value: '', included: true },

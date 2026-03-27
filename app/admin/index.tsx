@@ -153,7 +153,7 @@ export default function AdminDashboard() {
       <View style={[styles.header, { paddingTop: STATUS_BAR_HEIGHT + SPACING.sm }]}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.headerTitle}>이별방패 어드민</Text>
+            <Text style={styles.headerTitle}>안전이별 어드민</Text>
             <Text style={styles.headerSubtitle}>관리자 대시보드</Text>
           </View>
           <TouchableOpacity

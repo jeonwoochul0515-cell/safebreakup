@@ -21,8 +21,8 @@ import {
 
 // ─── FAQ Data ────────────────────────────────────────────────────────────────
 const FAQ_SECURITY = [
-  { q: '캡스 출동은 얼마나 빨리 오나요?', a: '평균 5분 이내 도착, 24시간 운영됩니다. 이별방패 SOS 신호 수신 즉시 가장 가까운 출동 요원이 배치됩니다.' },
-  { q: '기존 캡스 고객도 할인되나요?', a: '기존 고객은 이별방패 구독만 추가하면 연동됩니다. 별도 캡스 재가입 없이 기존 서비스에 이별방패 SOS 연계 기능이 추가됩니다.' },
+  { q: '캡스 출동은 얼마나 빨리 오나요?', a: '평균 5분 이내 도착, 24시간 운영됩니다. 안전이별 SOS 신호 수신 즉시 가장 가까운 출동 요원이 배치됩니다.' },
+  { q: '기존 캡스 고객도 할인되나요?', a: '기존 고객은 안전이별 구독만 추가하면 연동됩니다. 별도 캡스 재가입 없이 기존 서비스에 안전이별 SOS 연계 기능이 추가됩니다.' },
   { q: '계약 기간이 있나요?', a: '최소 6개월 계약이며, 이후 월단위로 자동 연장됩니다. 해지 시 1개월 전 통보하시면 위약금 없이 해지 가능합니다.' },
   { q: '설치 시 상대방에게 알려지나요?', a: '은밀하게 설치 가능합니다. 외부에서 보이지 않는 초소형 CCTV, 무선 도어센서 등 상대방이 인지할 수 없는 제품을 선택할 수 있습니다.' },
 ];
@@ -121,7 +121,7 @@ export default function SecurityPartnerScreen() {
               <Ionicons name={adtCaps.logo as any} size={28} color={adtCaps.color} />
             </View>
           </View>
-          <Text style={styles.heroTitle}>이별방패 × ADT캡스</Text>
+          <Text style={styles.heroTitle}>안전이별 × ADT캡스</Text>
           <Text style={styles.heroSub}>법률 보호 + 물리적 보안, 원스톱 안심 시스템</Text>
           <Text style={styles.heroTagline}>SOS 한 번이면 출동합니다</Text>
           <TouchableOpacity style={styles.heroCTA} activeOpacity={0.8}>
@@ -137,7 +137,7 @@ export default function SecurityPartnerScreen() {
         {/* ═══ Integration Flow Section ═══ */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>통합 연동 시스템</Text>
-          <Text style={styles.sectionSub}>이별방패와 ADT캡스가 하나로 연결됩니다</Text>
+          <Text style={styles.sectionSub}>안전이별와 ADT캡스가 하나로 연결됩니다</Text>
           {INTEGRATION_FLOW.map((item) => (
             <FlowCard key={item.step} item={item} />
           ))}
@@ -169,7 +169,7 @@ export default function SecurityPartnerScreen() {
         {/* ═══ Ansim Pack Pricing Section ═══ */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>안심팩 가격</Text>
-          <Text style={styles.sectionSub}>이별방패 + ADT캡스 통합 패키지</Text>
+          <Text style={styles.sectionSub}>안전이별 + ADT캡스 통합 패키지</Text>
           {ANSIM_PACK_TIERS.map((tier) => (
             <View
               key={tier.id}

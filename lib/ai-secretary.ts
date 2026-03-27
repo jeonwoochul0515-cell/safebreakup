@@ -7,7 +7,7 @@ import { OPTION_A_FOLLOWUP_QUESTIONS } from '@/constants/letter-templates';
 // 단계별 mock 응답
 const PHASE_RESPONSES: Record<CasePhase, string[]> = {
   1: [
-    '안녕하세요, 이별방패 법률 사무장입니다. 먼저 지금 안전한 곳에 계신지 확인드려도 될까요?',
+    '안녕하세요, 안전이별 법률 사무장입니다. 먼저 지금 안전한 곳에 계신지 확인드려도 될까요?',
     '현재 위험한 상황에 놓여 계신 건 아닌지 확인이 필요합니다. 지금 안전하신가요?',
     '안전이 확인되었습니다. 감사합니다. 그럼 상황을 파악해 보겠습니다.',
   ],

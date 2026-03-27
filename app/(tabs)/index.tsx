@@ -88,8 +88,8 @@ const TESTIMONIALS = [
 
 const FAQ_DATA = [
   {
-    q: '이별방패는 어떤 서비스인가요?',
-    a: '이별방패는 이별 과정에서 발생할 수 있는 법적 위험(스토킹, 협박, 사생활 침해 등)으로부터 안전하게 보호받을 수 있도록 돕는 법률 서비스입니다. 대표변호사가 직접 운영합니다.',
+    q: '안전이별는 어떤 서비스인가요?',
+    a: '안전이별는 이별 과정에서 발생할 수 있는 법적 위험(스토킹, 협박, 사생활 침해 등)으로부터 안전하게 보호받을 수 있도록 돕는 법률 서비스입니다. 대표변호사가 직접 운영합니다.',
   },
   {
     q: '위험도 자가진단은 어떻게 이용하나요?',
@@ -174,7 +174,7 @@ export default function HomeScreen() {
               <Ionicons name="shield" size={22} color={COLORS.gold} />
             </View>
             <View>
-              <Text style={styles.logoText}>이별방패</Text>
+              <Text style={styles.logoText}>안전이별</Text>
               <Text style={styles.headerSubtitle}>법률사무소 청송</Text>
             </View>
           </View>
@@ -382,7 +382,7 @@ export default function HomeScreen() {
             구체적인 법률 조언을 대체할 수 없습니다.
           </Text>
           <Text style={styles.footerCopy}>
-            © 2026 이별방패. All rights reserved.
+            © 2026 안전이별. All rights reserved.
           </Text>
         </View>
       </ScrollView>

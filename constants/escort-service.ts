@@ -121,7 +121,7 @@ export const SAFETY_TIPS_FOR_BREAKUP = [
   },
   {
     title: '증거를 준비하세요',
-    description: '위협적 발언에 대비해 녹음 앱을 켜두세요 (본인 대화 녹음은 합법). 이별방패 증거함을 활용하세요.',
+    description: '위협적 발언에 대비해 녹음 앱을 켜두세요 (본인 대화 녹음은 합법). 안전이별 증거함을 활용하세요.',
     icon: 'mic',
   },
   {
