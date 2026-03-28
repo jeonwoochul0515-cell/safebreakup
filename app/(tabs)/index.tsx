@@ -65,6 +65,15 @@ const QUICK_ACTIONS = [
     bgColor: COLORS.blush,
     route: '/complaint',
   },
+  {
+    key: 'stealth',
+    label: '은밀모드',
+    desc: '계산기로 위장',
+    icon: 'eye-off' as const,
+    color: COLORS.plum,
+    bgColor: COLORS.lavender,
+    route: '/stealth',
+  },
 ];
 
 const TESTIMONIALS = [

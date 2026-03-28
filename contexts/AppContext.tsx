@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import type { SafetySettings, User } from '@/types/database';
 
+export type CaseType = 'self_protect' | 'warning_letter' | 'complaint' | null;
+
 const DEFAULT_SAFETY_SETTINGS: SafetySettings = {
   fakeIcon: 'calculator',
   fakeNotificationText: '내일 날씨: 맑음',
@@ -32,6 +34,8 @@ export interface AppContextType {
   setCasePhase: (phase: 1 | 2 | 3 | 4 | 5) => void;
   caseStatus: string;
   setCaseStatus: (status: string) => void;
+  caseType: CaseType;
+  setCaseType: (type: CaseType) => void;
 
   // Safety settings
   safetySettings: SafetySettings;
@@ -54,6 +58,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Case tracking
   const [casePhase, setCasePhase] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [caseStatus, setCaseStatus] = useState<string>('intake');
+  const [caseType, setCaseType] = useState<CaseType>(null);
 
   // Safety settings
   const [safetySettings, setSafetySettingsState] = useState<SafetySettings>(DEFAULT_SAFETY_SETTINGS);
@@ -86,6 +91,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setCasePhase,
         caseStatus,
         setCaseStatus,
+        caseType,
+        setCaseType,
         safetySettings,
         setSafetySettings,
         user,

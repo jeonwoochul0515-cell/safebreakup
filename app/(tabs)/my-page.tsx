@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOW } from '@/constants/theme';
 import TrustSignalBar from '@/components/TrustSignalBar';
 import StatusTracker from '@/components/StatusTracker';
+import SOSModal from '@/components/SOSModal';
 import { useAppContext } from '@/contexts/AppContext';
+import { loadAllEvidence } from '@/lib/secure-evidence';
 
 // ---------------------------------------------------------------------------
 // Main screen
@@ -20,13 +22,20 @@ import { useAppContext } from '@/contexts/AppContext';
 
 export default function MyPageScreen() {
   const insets = useSafeAreaInsets();
-  const { casePhase, caseStatus } = useAppContext();
+  const { casePhase, caseStatus, caseType, completedSteps } = useAppContext();
 
-  // Demo quick-stats
-  const savedEvidence = 3;
-  const checklistDone = 5;
+  // Real data: evidence count
+  const [evidenceCount, setEvidenceCount] = useState(0);
+  const [showSOS, setShowSOS] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState('FREE');
+
+  useEffect(() => {
+    loadAllEvidence().then(items => setEvidenceCount(items.length));
+  }, []);
+
+  // Checklist from AppContext
   const checklistTotal = 12;
-  const currentPlan = 'FREE';
+  const checklistDone = completedSteps?.length || 0;
 
   // -----------------------------------------------------------------------
   // Handlers
@@ -41,24 +50,14 @@ export default function MyPageScreen() {
   };
 
   const handleSOS = () => {
-    Alert.alert(
-      '긴급 연락처',
-      '경찰 112 / 여성긴급전화 1366\n법률사무소 청송 02-XXX-XXXX',
-      [
-        { text: '닫기', style: 'cancel' },
-        {
-          text: '112 전화',
-          onPress: () => Alert.alert('전화 연결', '112로 전화합니다.'),
-        },
-      ],
-    );
+    setShowSOS(true);
   };
 
   // -----------------------------------------------------------------------
   // Quick stats data
   // -----------------------------------------------------------------------
   const stats = [
-    { value: `${savedEvidence}건`, label: '저장된 증거', color: COLORS.gold },
+    { value: `${evidenceCount}건`, label: '저장된 증거', color: COLORS.gold },
     { value: `${checklistDone}/${checklistTotal}`, label: '체크리스트', color: COLORS.sage },
     { value: currentPlan, label: '보호 플랜', color: COLORS.plum },
   ];
@@ -114,7 +113,7 @@ export default function MyPageScreen() {
 
       {/* ===== Status Tracker (wrapped in white card) ===== */}
       <View style={[styles.statusCard, SHADOW.sm]}>
-        <StatusTracker currentStatus={caseStatus} />
+        <StatusTracker currentStatus={caseStatus} caseType={caseType || 'self_protect'} />
       </View>
 
       {/* ===== Quick Stats ===== */}
@@ -168,6 +167,8 @@ export default function MyPageScreen() {
         </View>
         <Text style={styles.footerVersion}>앱 버전 1.0.0</Text>
       </View>
+      {/* ===== SOS Modal ===== */}
+      <SOSModal visible={showSOS} onClose={() => setShowSOS(false)} />
     </ScrollView>
   );
 }

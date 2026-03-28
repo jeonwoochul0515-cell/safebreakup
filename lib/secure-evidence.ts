@@ -25,10 +25,13 @@ export interface SecureEvidenceItem {
   metadata: {
     deviceInfo: string;
     appVersion: string;
-    captureMethod: string;   // manual, screenshot, camera, microphone
+    captureMethod: string;   // manual, screenshot, camera, microphone, gallery
     fileSize?: number;
   };
   verified: boolean;
+  fileUri?: string;           // 파일 경로 (이미지/음성/파일)
+  fileSize?: number;          // 파일 크기 (bytes)
+  mimeType?: string;          // MIME 타입
 }
 
 // ─── SHA-256 해시 생성 (실제 구현) ───────────────────────────
@@ -168,6 +171,9 @@ export async function createEvidence(params: {
   content: string;
   category: EvidenceCategory;
   captureMethod: string;
+  fileUri?: string;
+  fileSize?: number;
+  mimeType?: string;
 }): Promise<SecureEvidenceItem> {
   const timestamp = new Date().toISOString();
   const id = `ev-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
@@ -192,8 +198,12 @@ export async function createEvidence(params: {
       deviceInfo: getDeviceInfo(),
       appVersion: '3.0.0',
       captureMethod: params.captureMethod,
+      fileSize: params.fileSize,
     },
     verified: true,
+    fileUri: params.fileUri,
+    fileSize: params.fileSize,
+    mimeType: params.mimeType,
   };
 
   // 저장

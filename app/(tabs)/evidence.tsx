@@ -14,6 +14,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOW } from '@/constants/theme';
 import {
   createEvidence,
@@ -24,8 +26,11 @@ import {
   type SecureEvidenceItem,
   type EvidenceCategory as SecureCategory,
 } from '@/lib/secure-evidence';
+import { saveEvidenceFile, generateFilename, getFileSize } from '@/lib/file-manager';
 import { hasConsent, grantConsent } from '@/lib/consent-manager';
 import ConsentModal from '@/components/ConsentModal';
+import { analyzeEvidence, type AIAnalysisResult } from '@/lib/ai-analysis';
+import { AnalysisBadge, AnalysisDetailModal } from '@/components/EvidenceAnalysisBadge';
 
 // ─── Types ───────────────────────────────────────────────────────
 type EvidenceType = 'image' | 'audio' | 'text' | 'file';
@@ -37,6 +42,7 @@ interface EvidenceItem {
   timestamp: Date;
   category?: string;
   preview?: string;
+  analysisResult?: AIAnalysisResult;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────
@@ -95,9 +101,11 @@ function groupByDate(items: EvidenceItem[]): { label: string; items: EvidenceIte
 function SwipeableEvidenceCard({
   item,
   onDelete,
+  onAnalysisPress,
 }: {
   item: EvidenceItem;
   onDelete: (id: string) => void;
+  onAnalysisPress?: (result: AIAnalysisResult) => void;
 }) {
   const meta = TYPE_META[item.type];
   const translateX = useRef(new Animated.Value(0)).current;
@@ -194,6 +202,12 @@ function SwipeableEvidenceCard({
                 </View>
               )}
             </View>
+            {item.analysisResult && (
+              <AnalysisBadge
+                result={item.analysisResult}
+                onPress={() => onAnalysisPress?.(item.analysisResult!)}
+              />
+            )}
           </View>
         </View>
       </Animated.View>
@@ -215,6 +229,11 @@ export default function EvidenceScreen() {
   const [memoContent, setMemoContent] = useState('');
   const [addCategory, setAddCategory] = useState<SecureCategory>('기타');
   const [typePickerVisible, setTypePickerVisible] = useState(false);
+  const [analysisDetailVisible, setAnalysisDetailVisible] = useState(false);
+  const [selectedAnalysis, setSelectedAnalysis] = useState<AIAnalysisResult | null>(null);
+
+  // AI 분석 결과를 evidence 아이템에 매핑하는 맵
+  const [analysisResults, setAnalysisResults] = useState<Record<string, AIAnalysisResult>>({});
 
   useEffect(() => {
     hasConsent('evidence').then((granted) => {
@@ -268,9 +287,32 @@ export default function EvidenceScreen() {
       setEvidence((prev) => [uiItem, ...prev]);
       setSecureEvidence((prev) => [secureItem, ...prev]);
 
+      // 저장 완료 후 AI 분석 여부를 묻는 Alert
       Alert.alert(
         '증거 저장 완료',
-        `SHA-256 해시가 생성되었습니다.\n\n해시: ${secureItem.sha256Hash.substring(0, 16)}...\n시각: ${new Date(secureItem.timestamp).toLocaleString('ko-KR')}\n\n이 증거는 암호화되어 안전하게 보관됩니다.`
+        `SHA-256 해시가 생성되었습니다.\n해시: ${secureItem.sha256Hash.substring(0, 16)}...\n\n이 증거를 AI로 분석할까요?`,
+        [
+          { text: '나중에', style: 'cancel' },
+          {
+            text: '분석하기',
+            onPress: async () => {
+              try {
+                const result = await analyzeEvidence(secureItem);
+                setAnalysisResults((prev) => ({ ...prev, [secureItem.id]: result }));
+                setEvidence((prev) =>
+                  prev.map((e) =>
+                    e.id === secureItem.id ? { ...e, analysisResult: result } : e
+                  )
+                );
+                // 분석 완료 후 상세 결과 모달 표시
+                setSelectedAnalysis(result);
+                setAnalysisDetailVisible(true);
+              } catch {
+                Alert.alert('분석 오류', 'AI 분석에 실패했습니다. 나중에 다시 시도해주세요.');
+              }
+            },
+          },
+        ]
       );
     } catch (err) {
       Alert.alert('오류', '증거 저장에 실패했습니다. 다시 시도해주세요.');
@@ -286,38 +328,148 @@ export default function EvidenceScreen() {
     setMemoModalVisible(false);
   }, [memoTitle, memoContent, addCategory, saveEvidence]);
 
+  const refreshEvidenceList = useCallback(async () => {
+    const items = await loadAllEvidence();
+    setSecureEvidence(items);
+    const converted = await Promise.all(
+      items.map(async (item) => ({
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        timestamp: new Date(item.timestamp),
+        category: item.category,
+        preview: item.type === 'text' ? (await decryptContent(item)).substring(0, 100) : undefined,
+      }))
+    );
+    setEvidence(converted);
+  }, []);
+
+  const pickFromGallery = useCallback(async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('권한 필요', '갤러리 접근 권한이 필요합니다.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const filename = generateFilename('image', 'jpg');
+      const savedUri = saveEvidenceFile(asset.uri, filename);
+      const fileSize = getFileSize(savedUri);
+
+      await createEvidence({
+        type: 'image',
+        title: '사진 증거',
+        content: savedUri,
+        category: addCategory,
+        captureMethod: 'gallery',
+        fileUri: savedUri,
+        fileSize,
+        mimeType: asset.mimeType || 'image/jpeg',
+      });
+
+      await refreshEvidenceList();
+    }
+  }, [addCategory, refreshEvidenceList]);
+
+  const pickFromCamera = useCallback(async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('권한 필요', '카메라 접근 권한이 필요합니다.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({ quality: 1 });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const filename = generateFilename('image', 'jpg');
+      const savedUri = saveEvidenceFile(asset.uri, filename);
+      const fileSize = getFileSize(savedUri);
+
+      await createEvidence({
+        type: 'image',
+        title: '카메라 촬영 증거',
+        content: savedUri,
+        category: addCategory,
+        captureMethod: 'camera',
+        fileUri: savedUri,
+        fileSize,
+        mimeType: asset.mimeType || 'image/jpeg',
+      });
+
+      await refreshEvidenceList();
+    }
+  }, [addCategory, refreshEvidenceList]);
+
   const handleAddImage = useCallback(() => {
-    // TODO: expo-image-picker 연동
-    Alert.prompt ? Alert.prompt(
-      '사진/스크린샷 증거',
-      '증거 설명을 입력하세요 (예: 카카오톡 협박 메시지 캡처)',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '저장',
-          onPress: (desc?: string) => {
-            if (desc?.trim()) {
-              saveEvidence('image', desc.trim(), `[사진 증거] ${desc.trim()} — 캡처 시각: ${new Date().toISOString()}`, addCategory, 'screenshot');
-            }
-          },
-        },
-      ],
-      'plain-text'
-    ) : (() => {
-      setAddType('image');
-      setAddModalVisible(true);
-    })();
-  }, [addCategory, saveEvidence]);
+    Alert.alert('사진 증거 추가', '어떻게 추가하시겠어요?', [
+      { text: '카메라 촬영', onPress: () => pickFromCamera() },
+      { text: '갤러리에서 선택', onPress: () => pickFromGallery() },
+      { text: '취소', style: 'cancel' },
+    ]);
+  }, [pickFromCamera, pickFromGallery]);
 
-  const handleAddAudio = useCallback(() => {
-    setAddType('audio');
-    setAddModalVisible(true);
-  }, []);
+  const handleAddAudio = useCallback(async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['audio/*'],
+      copyToCacheDirectory: true,
+    });
 
-  const handleAddFile = useCallback(() => {
-    setAddType('file');
-    setAddModalVisible(true);
-  }, []);
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const ext = asset.name.split('.').pop() || 'mp3';
+      const filename = generateFilename('audio', ext);
+      const savedUri = saveEvidenceFile(asset.uri, filename);
+      const fileSize = getFileSize(savedUri);
+
+      await createEvidence({
+        type: 'audio',
+        title: asset.name,
+        content: savedUri,
+        category: addCategory,
+        captureMethod: 'manual',
+        fileUri: savedUri,
+        fileSize,
+        mimeType: asset.mimeType || 'audio/mpeg',
+      });
+
+      await refreshEvidenceList();
+    }
+  }, [addCategory, refreshEvidenceList]);
+
+  const handleAddFile = useCallback(async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['application/pdf', 'image/*', 'audio/*', '*/*'],
+      copyToCacheDirectory: true,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const ext = asset.name.split('.').pop() || 'file';
+      const filename = generateFilename('file', ext);
+      const savedUri = saveEvidenceFile(asset.uri, filename);
+      const fileSize = getFileSize(savedUri);
+
+      await createEvidence({
+        type: 'file',
+        title: asset.name,
+        content: savedUri,
+        category: addCategory,
+        captureMethod: 'manual',
+        fileUri: savedUri,
+        fileSize,
+        mimeType: asset.mimeType || 'application/octet-stream',
+      });
+
+      await refreshEvidenceList();
+    }
+  }, [addCategory, refreshEvidenceList]);
 
   const handleAddModalSave = useCallback(() => {
     if (!memoContent.trim()) {
@@ -517,6 +669,10 @@ export default function EvidenceScreen() {
                     key={item.id}
                     item={item}
                     onDelete={deleteItem}
+                    onAnalysisPress={(result) => {
+                      setSelectedAnalysis(result);
+                      setAnalysisDetailVisible(true);
+                    }}
                   />
                 ))}
               </View>
@@ -704,7 +860,7 @@ export default function EvidenceScreen() {
                   {addType === 'image' ? '갤러리에서 사진을 선택하거나 카메라로 촬영합니다.' :
                    addType === 'audio' ? '녹음 파일을 선택하거나 새로 녹음합니다.' :
                    '파일을 선택하여 첨부합니다.'}
-                  {'\n'}(파일 첨부는 Supabase 연동 후 활성화됩니다. 현재는 텍스트 설명이 증거로 저장됩니다.)
+                  {'\n'}파일은 기기 내 암호화 저장소에 안전하게 보관됩니다.
                 </Text>
               </View>
             )}
@@ -770,6 +926,16 @@ export default function EvidenceScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* ── AI 분석 결과 상세 Modal ────────────────────────────── */}
+      <AnalysisDetailModal
+        visible={analysisDetailVisible}
+        result={selectedAnalysis}
+        onClose={() => {
+          setAnalysisDetailVisible(false);
+          setSelectedAnalysis(null);
+        }}
+      />
     </View>
   );
 }

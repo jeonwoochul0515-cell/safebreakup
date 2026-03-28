@@ -3,18 +3,40 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOW } from '@/constants/theme';
 
-const STATUS_STEPS = [
-  '상담접수',
-  '사실관계정리',
-  '변호사검토대기',
-  '법적조치안내',
-  '사후관리',
-] as const;
+const TRACK_STEPS = {
+  self_protect: [
+    '상황 파악',
+    '증거 수집',
+    '안전 계획',
+    '전문가 상담',
+    '지속 모니터링',
+  ],
+  warning_letter: [
+    '사실관계 정리',
+    '변호사 검토',
+    '경고장 작성',
+    '발송 완료',
+    '수령 확인',
+    '답변 대기',
+    '후속 조치',
+  ],
+  complaint: [
+    '증거 정리',
+    '고소장 작성',
+    '고소장 접수',
+    '수사 진행',
+    '검찰 송치',
+    '기소 결정',
+    '재판 진행',
+    '판결/종결',
+  ],
+} as const;
 
-type StatusKey = (typeof STATUS_STEPS)[number];
+type TrackType = keyof typeof TRACK_STEPS;
 
 interface StatusTrackerProps {
   currentStatus: string;
+  caseType?: TrackType;
   onStatusPress?: (status: string, index: number) => void;
 }
 
@@ -55,17 +77,18 @@ function PulsingCircle() {
   );
 }
 
-export default function StatusTracker({ currentStatus, onStatusPress }: StatusTrackerProps) {
-  const currentIndex = STATUS_STEPS.indexOf(currentStatus as StatusKey);
+export default function StatusTracker({ currentStatus, caseType = 'self_protect', onStatusPress }: StatusTrackerProps) {
+  const steps = TRACK_STEPS[caseType] as readonly string[];
+  const currentIndex = steps.indexOf(currentStatus);
   // If status not found, try mapping common values
   const activeIndex = currentIndex >= 0 ? currentIndex : 0;
 
   return (
     <View style={[styles.container, SHADOW.sm]}>
-      {STATUS_STEPS.map((step, index) => {
+      {steps.map((step, index) => {
         const isCompleted = index < activeIndex;
         const isCurrent = index === activeIndex;
-        const isLast = index === STATUS_STEPS.length - 1;
+        const isLast = index === steps.length - 1;
 
         return (
           <TouchableOpacity
