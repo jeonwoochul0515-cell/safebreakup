@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOW } from '@/constants/theme';
 import { DIAGNOSIS_QUESTIONS, LEGAL } from '@/constants/legal';
+import { hasConsent, grantConsent } from '@/lib/consent-manager';
+import ConsentModal from '@/components/ConsentModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -36,12 +38,21 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 export default function DiagnosisScreen() {
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [needsConsent, setNeedsConsent] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    hasConsent('diagnosis').then((granted) => {
+      if (!granted) setNeedsConsent(true);
+      setConsentChecked(true);
+    });
+  }, []);
 
   const totalQuestions = DIAGNOSIS_QUESTIONS.length;
   const currentQuestion = DIAGNOSIS_QUESTIONS[currentIndex];
@@ -149,6 +160,20 @@ export default function DiagnosisScreen() {
     bg: COLORS.blush,
     text: COLORS.gold,
   };
+
+  if (!consentChecked) return null;
+  if (needsConsent) {
+    return (
+      <ConsentModal
+        visible
+        onConsent={() => {
+          grantConsent('diagnosis');
+          setNeedsConsent(false);
+        }}
+        onDecline={() => router.back()}
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

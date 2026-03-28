@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { generateResponse } from '@/lib/legal-chatbot';
+import SOSModal from '@/components/SOSModal';
 import {
   View,
   Text,
@@ -146,6 +147,7 @@ export default function LegalInfoScreen() {
   const [showConsultButton, setShowConsultButton] = useState(false);
   const [conversationCategory, setConversationCategory] = useState<string | null>(null);
   const [followUpIndex, setFollowUpIndex] = useState(0);
+  const [showSOS, setShowSOS] = useState(false);
 
   // Scroll to bottom helper
   const scrollToBottom = useCallback(() => {
@@ -217,7 +219,10 @@ export default function LegalInfoScreen() {
 
     // AI 챗봇 엔진으로 응답 생성
     const response = generateResponse('legal-chat-session', trimmed);
-    addBotMessage(response, () => {
+    if (response.isEmergency) {
+      setShowSOS(true);
+    }
+    addBotMessage(response.text, () => {
       // 3번째 질문 이후 상담 버튼 표시
       if (messages.length > 6) {
         setShowConsultButton(true);
@@ -398,6 +403,9 @@ export default function LegalInfoScreen() {
           />
         </TouchableOpacity>
       </View>
+
+      {/* SOS Modal — 위기 키워드 감지 시 표시 */}
+      <SOSModal visible={showSOS} onClose={() => setShowSOS(false)} />
     </KeyboardAvoidingView>
   );
 }

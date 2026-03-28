@@ -24,6 +24,8 @@ import {
   type SecureEvidenceItem,
   type EvidenceCategory as SecureCategory,
 } from '@/lib/secure-evidence';
+import { hasConsent, grantConsent } from '@/lib/consent-manager';
+import ConsentModal from '@/components/ConsentModal';
 
 // ─── Types ───────────────────────────────────────────────────────
 type EvidenceType = 'image' | 'audio' | 'text' | 'file';
@@ -202,6 +204,8 @@ function SwipeableEvidenceCard({
 // ─── Main Screen ─────────────────────────────────────────────────
 export default function EvidenceScreen() {
   const insets = useSafeAreaInsets();
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [needsConsent, setNeedsConsent] = useState(false);
   const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
   const [secureEvidence, setSecureEvidence] = useState<SecureEvidenceItem[]>([]);
   const [memoModalVisible, setMemoModalVisible] = useState(false);
@@ -210,20 +214,30 @@ export default function EvidenceScreen() {
   const [memoTitle, setMemoTitle] = useState('');
   const [memoContent, setMemoContent] = useState('');
   const [addCategory, setAddCategory] = useState<SecureCategory>('기타');
+  const [typePickerVisible, setTypePickerVisible] = useState(false);
+
+  useEffect(() => {
+    hasConsent('evidence').then((granted) => {
+      if (!granted) setNeedsConsent(true);
+      setConsentChecked(true);
+    });
+  }, []);
 
   // 앱 시작 시 저장된 증거 로드
   useEffect(() => {
-    loadAllEvidence().then((items) => {
+    loadAllEvidence().then(async (items) => {
       setSecureEvidence(items);
-      // 호환성: SecureEvidenceItem → EvidenceItem 변환
-      const converted: EvidenceItem[] = items.map(item => ({
-        id: item.id,
-        type: item.type,
-        title: item.title,
-        timestamp: new Date(item.timestamp),
-        category: item.category,
-        preview: item.type === 'text' ? decryptContent(item).substring(0, 100) : undefined,
-      }));
+      // 호환성: SecureEvidenceItem → EvidenceItem 변환 (decryptContent가 async)
+      const converted: EvidenceItem[] = await Promise.all(
+        items.map(async (item) => ({
+          id: item.id,
+          type: item.type,
+          title: item.title,
+          timestamp: new Date(item.timestamp),
+          category: item.category,
+          preview: item.type === 'text' ? (await decryptContent(item)).substring(0, 100) : undefined,
+        }))
+      );
       setEvidence(converted);
     });
   }, []);
@@ -348,6 +362,20 @@ export default function EvidenceScreen() {
   const groups = groupByDate(evidence);
   const isEmpty = evidence.length === 0;
 
+  if (!consentChecked) return null;
+  if (needsConsent) {
+    return (
+      <ConsentModal
+        visible
+        onConsent={() => {
+          grantConsent('evidence');
+          setNeedsConsent(false);
+        }}
+        onDecline={() => router.back()}
+      />
+    );
+  }
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {/* ── Header ─────────────────────────────────────────────── */}
@@ -403,17 +431,71 @@ export default function EvidenceScreen() {
         {/* ── Evidence List / Empty State ──────────────────────── */}
         {isEmpty ? (
           <View style={styles.emptyContainer}>
-            <View style={styles.emptyIllustration}>
-              <Ionicons name="folder-open-outline" size={64} color={COLORS.plum} />
+            {/* 왜 필요한가요? */}
+            <View style={styles.landingHero}>
+              <View style={styles.emptyIllustration}>
+                <Ionicons name="shield-checkmark" size={48} color={COLORS.gold} />
+              </View>
+              <Text style={styles.emptyTitle}>증거, 미리 모아두세요</Text>
+              <Text style={styles.emptySubtitle}>
+                스토킹·협박·폭행 사건에서{'\n'}
+                <Text style={styles.emptyHighlight}>증거 확보 여부가 법적 결과를 좌우</Text>합니다.{'\n'}
+                안전이별이 안전하게 보관해드릴게요.
+              </Text>
             </View>
-            <Text style={styles.emptyTitle}>아직 저장된 증거가 없어요</Text>
-            <Text style={styles.emptySubtitle}>
-              증거를 미리 확보해두면{'\n'}법적 대응에 큰 도움이 됩니다
-            </Text>
+
+            {/* 진행 단계 */}
+            <View style={styles.landingSteps}>
+              <Text style={styles.landingStepsTitle}>이렇게 진행됩니다</Text>
+
+              <View style={styles.stepItem}>
+                <View style={[styles.stepBadge, { backgroundColor: COLORS.blush }]}>
+                  <Text style={styles.stepNumber}>1</Text>
+                </View>
+                <View style={styles.stepTextArea}>
+                  <Text style={styles.stepLabel}>증거 수집</Text>
+                  <Text style={styles.stepDesc}>문자 캡처, 녹음, 사진 등을 저장하세요</Text>
+                </View>
+              </View>
+
+              <View style={styles.stepConnector} />
+
+              <View style={styles.stepItem}>
+                <View style={[styles.stepBadge, { backgroundColor: COLORS.lavender }]}>
+                  <Text style={styles.stepNumber}>2</Text>
+                </View>
+                <View style={styles.stepTextArea}>
+                  <Text style={styles.stepLabel}>암호화 보관</Text>
+                  <Text style={styles.stepDesc}>AES-256 암호화 + 위변조 방지 해시 적용</Text>
+                </View>
+              </View>
+
+              <View style={styles.stepConnector} />
+
+              <View style={styles.stepItem}>
+                <View style={[styles.stepBadge, { backgroundColor: COLORS.sageLight + '80' }]}>
+                  <Text style={styles.stepNumber}>3</Text>
+                </View>
+                <View style={styles.stepTextArea}>
+                  <Text style={styles.stepLabel}>법적 활용</Text>
+                  <Text style={styles.stepDesc}>경찰 제출용 PDF로 내보내기 가능</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* 보안 안내 */}
+            <View style={styles.landingSecurityNote}>
+              <Ionicons name="lock-closed" size={16} color={COLORS.sage} />
+              <Text style={styles.landingSecurityText}>
+                모든 증거는 기기 내에서만 암호화 저장되며,{'\n'}외부 서버로 전송되지 않습니다.
+              </Text>
+            </View>
+
+            {/* CTA */}
             <TouchableOpacity
               style={styles.emptyCta}
               activeOpacity={0.7}
-              onPress={() => handleUpload('text')}
+              onPress={() => setTypePickerVisible(true)}
             >
               <Ionicons name="add-circle" size={20} color={COLORS.white} />
               <Text style={styles.emptyCtaText}>첫 번째 증거 추가하기</Text>
@@ -446,11 +528,28 @@ export default function EvidenceScreen() {
       {/* ── Bottom Action ─────────────────────────────────────── */}
       <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, SPACING.md) }]}>
         <TouchableOpacity
+          style={[styles.createDocButton, isEmpty && styles.createDocButtonDisabled]}
+          activeOpacity={isEmpty ? 1 : 0.7}
+          onPress={() => {
+            if (isEmpty) return;
+            router.push('/complaint' as any);
+          }}
+        >
+          <Ionicons
+            name="document-text"
+            size={20}
+            color={isEmpty ? COLORS.lightText : COLORS.white}
+          />
+          <Text style={[styles.createDocButtonText, isEmpty && styles.createDocButtonTextDisabled]}>
+            이 증거로 서류 만들기
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[styles.pdfButton, isEmpty && styles.pdfButtonDisabled]}
           activeOpacity={isEmpty ? 1 : 0.7}
           onPress={() => {
             if (isEmpty) return;
-            router.push('/police-report' as any);
+            router.push('/complaint' as any);
           }}
         >
           <Ionicons
@@ -628,6 +727,49 @@ export default function EvidenceScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* ── 유형 선택 Modal ─────────────────────────────────── */}
+      <Modal
+        visible={typePickerVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setTypePickerVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setTypePickerVisible(false)}
+        >
+          <View style={[styles.typePickerContent, { paddingBottom: Math.max(insets.bottom, SPACING.lg) }]}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>증거 유형을 선택하세요</Text>
+            <View style={styles.typePickerGrid}>
+              {UPLOAD_BUTTONS.map((btn) => (
+                <TouchableOpacity
+                  key={btn.type}
+                  style={styles.typePickerButton}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setTypePickerVisible(false);
+                    handleUpload(btn.type);
+                  }}
+                >
+                  <View style={[styles.uploadIconCircle, { backgroundColor: btn.bg }]}>
+                    <Ionicons name={btn.icon as any} size={24} color={COLORS.darkText} />
+                  </View>
+                  <Text style={styles.uploadLabel}>{btn.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={styles.typePickerCancel}
+              onPress={() => setTypePickerVisible(false)}
+            >
+              <Text style={styles.typePickerCancelText}>닫기</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -740,34 +882,114 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // ── Empty State ──
+  // ── Empty / Landing State ──
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: SPACING.xxl,
+    paddingVertical: SPACING.lg,
     paddingHorizontal: SPACING.lg,
   },
+  landingHero: {
+    alignItems: 'center',
+    marginBottom: SPACING.xl,
+  },
   emptyIllustration: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     backgroundColor: COLORS.lavender,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SPACING.lg,
+    marginBottom: SPACING.md,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: COLORS.darkText,
+    fontSize: 22,
+    fontWeight: '800',
+    color: COLORS.navy,
     marginBottom: SPACING.sm,
   },
   emptySubtitle: {
     fontSize: FONT_SIZE.md,
     color: COLORS.slate,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
+  },
+  emptyHighlight: {
+    color: COLORS.gold,
+    fontWeight: '700',
+  },
+
+  // ── Steps ──
+  landingSteps: {
+    width: '100%',
+    backgroundColor: COLORS.cardBg,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    marginBottom: SPACING.md,
+    ...SHADOW.sm,
+  },
+  landingStepsTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: COLORS.navy,
     marginBottom: SPACING.lg,
   },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  stepBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepNumber: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '800',
+    color: COLORS.navy,
+  },
+  stepTextArea: {
+    flex: 1,
+  },
+  stepLabel: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.darkText,
+  },
+  stepDesc: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.slate,
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  stepConnector: {
+    width: 2,
+    height: 16,
+    backgroundColor: COLORS.borderLight,
+    marginLeft: 17,
+    marginVertical: 4,
+  },
+
+  // ── Security Note ──
+  landingSecurityNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.sageLight + '30',
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+    width: '100%',
+  },
+  landingSecurityText: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.slate,
+    lineHeight: 18,
+    flex: 1,
+  },
+
   emptyCta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -936,6 +1158,28 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.md,
     borderTopWidth: 1,
     borderTopColor: COLORS.borderLight,
+  },
+  createDocButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.sage,
+    paddingVertical: 14,
+    borderRadius: RADIUS.md,
+    minHeight: 56,
+    marginBottom: SPACING.sm,
+  },
+  createDocButtonDisabled: {
+    backgroundColor: COLORS.borderLight,
+  },
+  createDocButtonText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '600',
+    color: COLORS.white,
+  },
+  createDocButtonTextDisabled: {
+    color: COLORS.lightText,
   },
   pdfButton: {
     flexDirection: 'row',
@@ -1123,5 +1367,34 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     flex: 1,
     lineHeight: 18,
+  },
+
+  // ── Type Picker Modal ──
+  typePickerContent: {
+    backgroundColor: COLORS.warmWhite,
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
+    padding: SPACING.lg,
+    paddingTop: SPACING.md,
+    alignItems: 'center',
+  },
+  typePickerGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.lg,
+  },
+  typePickerButton: {
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  typePickerCancel: {
+    paddingVertical: SPACING.md,
+  },
+  typePickerCancelText: {
+    fontSize: FONT_SIZE.md,
+    color: COLORS.lightText,
+    fontWeight: '600',
   },
 });

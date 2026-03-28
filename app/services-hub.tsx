@@ -111,7 +111,7 @@ const CATEGORIES: ServiceCategory[] = [
     services: [
       { icon: 'folder-open', title: '증거보관함', subtitle: '암호화 안전 저장', tier: 'free', route: '/evidence' },
       { icon: 'finger-print', title: '증거 포렌식', subtitle: 'SHA-256 해시 검증', tier: 'care', route: '/evidence-forensics' },
-      { icon: 'document-lock', title: '경찰 제출 보고서', subtitle: 'AI 분석 + 변호사 검토', tier: 'care', route: '/police-report' },
+      { icon: 'document-lock', title: '경찰 제출 보고서', subtitle: 'AI 분석 + 변호사 검토', tier: 'care', route: '/complaint' },
       { icon: 'mail', title: '법률 경고장', subtitle: '변호사 명의 내용증명', tier: 'lite', route: '/letter' },
       { icon: 'scale', title: '법률정보 챗봇', subtitle: '공감형 법률 안내', tier: 'free', route: '/legal-info' },
     ],

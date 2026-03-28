@@ -36,7 +36,8 @@ function getContext(sessionId: string): ConversationContext {
 const BEHAVIOR_PATTERNS: { keywords: string[]; behavior: string; category: string; urgency: 'low' | 'medium' | 'high' | 'critical' }[] = [
   // 스토킹
   { keywords: ['따라', '미행', '추적', '쫓아', '감시', '지켜보', '기다리'], behavior: '미행/추적', category: 'stalking', urgency: 'high' },
-  { keywords: ['찾아와', '찾아옴', '방문', '직장에', '학교에', '집에 와', '집앞'], behavior: '주거지/직장 방문', category: 'stalking', urgency: 'high' },
+  { keywords: ['직장에', '학교에', '집에 와', '집앞', '기다리고 있'], behavior: '주거지/직장 방문', category: 'stalking', urgency: 'high' },
+  { keywords: ['찾아와', '찾아옴', '방문'], behavior: '방문/접촉', category: 'stalking', urgency: 'medium' },
   { keywords: ['전화', '문자', '카톡', '연락', 'DM', '메시지', '부재중'], behavior: '반복 연락', category: 'stalking', urgency: 'medium' },
   { keywords: ['SNS', '인스타', '페이스북', '트위터', '계정', '팔로우', '댓글'], behavior: 'SNS 접촉', category: 'stalking', urgency: 'medium' },
   { keywords: ['선물', '택배', '꽃', '편지', '우편'], behavior: '물품 전달', category: 'stalking', urgency: 'medium' },
@@ -221,14 +222,38 @@ const LEGAL_KNOWLEDGE: Record<string, { laws: string; penalty: string; keyPoints
   },
 };
 
+// ─── 자해/자살 위기 키워드 ────────────────────────────────────
+
+const SELF_HARM_KEYWORDS = ['죽고 싶', '자살', '자해', '죽겠', '없어지고', '사라지고', '끝내고'];
+
 // ─── 응답 생성 엔진 ──────────────────────────────────────────
 
-export function generateResponse(sessionId: string, userMessage: string): string {
+export interface ChatbotResponse {
+  text: string;
+  isEmergency: boolean;
+}
+
+export function generateResponse(sessionId: string, userMessage: string): ChatbotResponse {
   const ctx = getContext(sessionId);
   ctx.messages.push({ role: 'user', text: userMessage });
   ctx.questionCount++;
 
   const lower = userMessage.toLowerCase();
+
+  // 자해/자살 키워드 감지 → 즉시 위기 응답
+  const hasSelfHarmKeyword = SELF_HARM_KEYWORDS.some(kw => lower.includes(kw));
+  if (hasSelfHarmKeyword) {
+    const crisisResponse =
+      '💛 지금 많이 힘드시죠. 당신의 마음이 걱정됩니다.\n\n' +
+      '당신은 소중한 사람이고, 도움을 받으실 수 있습니다.\n\n' +
+      '📞 지금 바로 연락해주세요:\n' +
+      '• 자살예방상담전화 1393 (24시간)\n' +
+      '• 정신건강위기상담전화 1577-0199 (24시간)\n' +
+      '• 생명의전화 1588-9191\n\n' +
+      '전문 상담사가 24시간 기다리고 있습니다. 혼자 감당하지 않으셔도 됩니다.';
+    ctx.messages.push({ role: 'bot', text: crisisResponse });
+    return { text: crisisResponse, isEmergency: true };
+  }
 
   // 행동 패턴 감지
   const detectedBehaviors: string[] = [];
@@ -268,8 +293,8 @@ export function generateResponse(sessionId: string, userMessage: string): string
     ctx.collectedFacts['timeframe'] = dateMatch[0];
   }
 
-  // ─── 긴급 상황 우선 처리 ───
-  if (ctx.urgencyLevel === 'critical' && ctx.phase !== 'advising') {
+  // ─── 긴급 상황 우선 처리 (첫 메시지에서는 상황 파악 우선) ───
+  if (ctx.urgencyLevel === 'critical' && ctx.phase !== 'advising' && ctx.questionCount > 1) {
     ctx.phase = 'advising';
     const cats = Array.from(ctx.detectedCategories);
     let urgentResponse = '⚠️ 지금 말씀하신 상황은 매우 심각합니다. 당신의 안전이 가장 중요합니다.\n\n';
@@ -284,7 +309,7 @@ export function generateResponse(sessionId: string, userMessage: string): string
     urgentResponse += '안전한 상태가 확인되면, 구체적인 법적 대응을 안내해드리겠습니다. 지금 안전하신가요?';
 
     ctx.messages.push({ role: 'bot', text: urgentResponse });
-    return urgentResponse;
+    return { text: urgentResponse, isEmergency: true };
   }
 
   // ─── 대화 단계별 응답 ───
@@ -306,7 +331,7 @@ export function generateResponse(sessionId: string, userMessage: string): string
       response += getFollowUpQuestion(ctx);
 
       ctx.messages.push({ role: 'bot', text: response });
-      return response;
+      return { text: response, isEmergency: false };
     }
 
     // 키워드 매칭 실패 시
@@ -321,7 +346,7 @@ export function generateResponse(sessionId: string, userMessage: string): string
     response += '어떤 상황이든 편하게 말씀해주세요. 천천히 들을게요.';
 
     ctx.messages.push({ role: 'bot', text: response });
-    return response;
+    return { text: response, isEmergency: ctx.urgencyLevel === 'critical' };
   }
 
   // Phase: exploring → deepening
@@ -354,7 +379,7 @@ export function generateResponse(sessionId: string, userMessage: string): string
     response += getFollowUpQuestion(ctx);
 
     ctx.messages.push({ role: 'bot', text: response });
-    return response;
+    return { text: response, isEmergency: ctx.urgencyLevel === 'critical' };
   }
 
   // Phase: deepening → advising
@@ -405,7 +430,7 @@ export function generateResponse(sessionId: string, userMessage: string): string
     response += '\n어떤 도움부터 시작할까요?';
 
     ctx.messages.push({ role: 'bot', text: response });
-    return response;
+    return { text: response, isEmergency: ctx.urgencyLevel === 'critical' };
   }
 
   // Phase: advising → actionable
@@ -462,7 +487,7 @@ export function generateResponse(sessionId: string, userMessage: string): string
     }
 
     ctx.messages.push({ role: 'bot', text: response });
-    return response;
+    return { text: response, isEmergency: ctx.urgencyLevel === 'critical' };
   }
 
   // Phase: actionable — 계속 안내
@@ -485,14 +510,14 @@ export function generateResponse(sessionId: string, userMessage: string): string
   }
 
   ctx.messages.push({ role: 'bot', text: response });
-  return response;
+  return { text: response, isEmergency: ctx.urgencyLevel === 'critical' };
 }
 
 // ─── 헬퍼 함수들 ─────────────────────────────────────────
 
 function getEmpathyMessage(category: string): string {
   const messages: Record<string, string> = {
-    stalking: '정말 무섭고 불안하셨겠어요. 누군가가 원치 않는 접촉을 계속하는 건 명백한 스토킹 행위이고, 법으로 보호받으실 수 있습니다.',
+    stalking: '원치 않는 연락이나 접촉이 계속되면 불안하실 수 있어요. 상황에 따라 법적으로 보호받으실 수 있습니다.',
     threat: '그런 위협을 받으셨다니 정말 두려우셨을 거예요. 당신의 안전이 가장 중요합니다. 도움을 받으실 수 있습니다.',
     ncii: '정말 힘든 상황이시네요. 이건 심각한 범죄이고, 절대 당신의 잘못이 아닙니다.',
     violence: '그런 일을 겪으셨다니 정말 마음이 아픕니다. 어떤 이유에서든 폭력은 절대 정당화될 수 없습니다.',

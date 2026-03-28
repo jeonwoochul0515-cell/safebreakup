@@ -385,12 +385,9 @@ export default function AISecretaryScreen() {
       addUserMessage(`선택지 ${option}: ${chosen.title}`, 5);
 
       if (option === 'A') {
-        // Option A: 경고장 → 후속 질문 흐름 시작
-        const firstMsg = startOptionAFlow(SESSION_ID);
-        setOptionAActive(true);
-        setOptionAQuestionIndex(0);
-        setMultiselectBuffer([]);
-        botReply(firstMsg.content, 5, TYPING_DELAY);
+        // Option A: 고소장/경고장 → /complaint 화면으로 이동
+        router.push('/complaint');
+        return;
       } else {
         // Option B: 기존 흐름
         botReply(

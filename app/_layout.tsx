@@ -129,6 +129,13 @@ function RootNavigator() {
           }}
         />
         <Stack.Screen
+          name="complaint"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
           name="safety-settings"
           options={{
             headerShown: false,
@@ -141,14 +148,6 @@ function RootNavigator() {
             headerShown: false,
           }}
         />
-        <Stack.Screen
-          name="modal"
-          options={{
-            presentation: 'modal',
-            title: '설정',
-          }}
-        />
-
         {/* ── v3 New Modules ── */}
         {/* M1: Danger Assessment */}
         <Stack.Screen name="danger-assessment" options={{ headerShown: false, animation: 'slide_from_right' }} />

@@ -7,14 +7,13 @@ import {
   TouchableOpacity,
   Dimensions,
   Linking,
-  Modal,
-  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOW } from '@/constants/theme';
 import TrustSignalBar from '@/components/TrustSignalBar';
+import SOSModal from '@/components/SOSModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -37,7 +36,7 @@ const QUICK_ACTIONS = [
     icon: 'document-text' as const,
     color: COLORS.gold,
     bgColor: COLORS.lavender,
-    route: '/legal-info',
+    route: '/letter',
   },
   {
     key: 'evidence',
@@ -56,6 +55,15 @@ const QUICK_ACTIONS = [
     color: COLORS.sage,
     bgColor: '#EFF5F0',
     route: '/ai-secretary',
+  },
+  {
+    key: 'complaint',
+    label: '고소장 작성',
+    desc: 'AI 자동 작성',
+    icon: 'document-attach' as const,
+    color: COLORS.coral,
+    bgColor: COLORS.blush,
+    route: '/complaint',
   },
 ];
 
@@ -188,6 +196,12 @@ export default function HomeScreen() {
             <Text style={styles.sosChipText}>SOS</Text>
           </TouchableOpacity>
         </View>
+      </View>
+
+      {/* Legal disclaimer banner */}
+      <View style={styles.legalBanner}>
+        <Ionicons name="shield-checkmark" size={14} color={COLORS.gold} />
+        <Text style={styles.legalBannerText}>법률사무소 청송 제공 법률정보 서비스</Text>
       </View>
 
       <ScrollView
@@ -388,95 +402,10 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* ── SOS Modal ── */}
-      <Modal
+      <SOSModal
         visible={sosVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSosVisible(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setSosVisible(false)}
-        >
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalHandle} />
-
-            <View style={styles.modalIconWrap}>
-              <Ionicons name="heart" size={32} color={COLORS.coral} />
-            </View>
-
-            <Text style={styles.modalTitle}>긴급 도움이 필요하신가요?</Text>
-            <Text style={styles.modalDesc}>
-              위험한 상황이라면 즉시 아래 번호로 연락하세요.{'\n'}
-              당신은 혼자가 아닙니다.
-            </Text>
-
-            <View style={styles.sosButtonGroup}>
-              <TouchableOpacity
-                style={styles.sosButton}
-                activeOpacity={0.85}
-                onPress={() => {
-                  Linking.openURL('tel:112');
-                  setSosVisible(false);
-                }}
-              >
-                <View style={[styles.sosButtonIcon, { backgroundColor: COLORS.coral }]}>
-                  <Ionicons name="call" size={20} color={COLORS.white} />
-                </View>
-                <View style={styles.sosButtonTextArea}>
-                  <Text style={styles.sosButtonTitle}>경찰 신고</Text>
-                  <Text style={styles.sosButtonNumber}>112</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={COLORS.lightText} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.sosButton}
-                activeOpacity={0.85}
-                onPress={() => {
-                  Linking.openURL('tel:1366');
-                  setSosVisible(false);
-                }}
-              >
-                <View style={[styles.sosButtonIcon, { backgroundColor: COLORS.sage }]}>
-                  <Ionicons name="heart" size={20} color={COLORS.white} />
-                </View>
-                <View style={styles.sosButtonTextArea}>
-                  <Text style={styles.sosButtonTitle}>여성긴급전화</Text>
-                  <Text style={styles.sosButtonNumber}>1366</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={COLORS.lightText} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.sosButton}
-                activeOpacity={0.85}
-                onPress={() => {
-                  Linking.openURL('tel:1644-8422');
-                  setSosVisible(false);
-                }}
-              >
-                <View style={[styles.sosButtonIcon, { backgroundColor: COLORS.navy }]}>
-                  <Ionicons name="chatbubbles" size={20} color={COLORS.gold} />
-                </View>
-                <View style={styles.sosButtonTextArea}>
-                  <Text style={styles.sosButtonTitle}>법률사무소 청송 상담</Text>
-                  <Text style={styles.sosButtonNumber}>1644-8422</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={COLORS.lightText} />
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity
-              style={styles.modalClose}
-              onPress={() => setSosVisible(false)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.modalCloseText}>닫기</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        onClose={() => setSosVisible(false)}
+      />
     </View>
   );
 }
@@ -551,6 +480,22 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.sm,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+
+  // ── Legal Banner ──
+  legalBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: COLORS.warmGray,
+    paddingVertical: SPACING.xs + 2,
+    paddingHorizontal: SPACING.md,
+  },
+  legalBannerText: {
+    fontSize: FONT_SIZE.xs,
+    color: COLORS.slate,
+    fontWeight: '500',
   },
 
   // ── Scroll ──
@@ -857,102 +802,6 @@ const styles = StyleSheet.create({
     color: COLORS.lightText,
     marginTop: SPACING.xs,
     opacity: 0.7,
-  },
-
-  // ── SOS Modal ──
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(45,43,61,0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: COLORS.warmWhite,
-    borderTopLeftRadius: RADIUS.xl + 4,
-    borderTopRightRadius: RADIUS.xl + 4,
-    padding: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.xl,
-    alignItems: 'center',
-    gap: SPACING.sm,
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: COLORS.borderLight,
-    marginBottom: SPACING.md,
-  },
-  modalIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.blush,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: SPACING.xs,
-  },
-  modalTitle: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '700',
-    color: COLORS.navy,
-    letterSpacing: -0.3,
-  },
-  modalDesc: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.slate,
-    textAlign: 'center',
-    lineHeight: FONT_SIZE.md * 1.6,
-    marginBottom: SPACING.md,
-  },
-  sosButtonGroup: {
-    width: '100%',
-    gap: SPACING.sm,
-  },
-  sosButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.warmGray,
-    width: '100%',
-    paddingVertical: SPACING.md,
-    paddingHorizontal: SPACING.lg,
-    borderRadius: RADIUS.lg,
-    gap: SPACING.md,
-    minHeight: 64,
-  },
-  sosButtonIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sosButtonTextArea: {
-    flex: 1,
-  },
-  sosButtonTitle: {
-    fontSize: FONT_SIZE.md,
-    fontWeight: '700',
-    color: COLORS.darkText,
-  },
-  sosButtonNumber: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.slate,
-    marginTop: 2,
-  },
-  sosButtonText: {
-    color: COLORS.white,
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '700',
-  },
-  modalClose: {
-    paddingVertical: SPACING.md + 4,
-    paddingHorizontal: SPACING.xxl,
-    marginTop: SPACING.sm,
-  },
-  modalCloseText: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.lightText,
-    fontWeight: '600',
   },
 
   // v3 Module Cards

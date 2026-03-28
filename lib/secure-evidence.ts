@@ -1,11 +1,12 @@
 // 증거 보안 저장 라이브러리
-// SHA-256 해시 + AES 암호화 시뮬레이션 + AsyncStorage 영속성
-// TODO: 실제 운영 시 expo-crypto + expo-secure-store + Supabase 연동
+// SHA-256 해시 (expo-crypto) + XOR 스트림 암호화 + SecureStore 키 관리
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Crypto from 'expo-crypto';
+import * as SecureStore from 'expo-secure-store';
 
 const STORAGE_KEY = '@safebreakup_evidence_v2';
-const ENCRYPTION_KEY_PLACEHOLDER = 'user-pin-derived-key'; // TODO: PIN 기반 키 파생
+const ENCRYPTION_KEY_NAME = 'safebreakup_evidence_key';
 
 // ─── 타입 ───────────────────────────────────────────────────
 
@@ -16,10 +17,10 @@ export interface SecureEvidenceItem {
   id: string;
   type: EvidenceType;
   title: string;
-  content: string;           // 텍스트 메모 내용 또는 파일 URI
+  content: string;           // 암호화된 hex 문자열 또는 레거시 Base64
   category: EvidenceCategory;
   timestamp: string;          // ISO string
-  sha256Hash: string;         // 무결성 해시
+  sha256Hash: string;         // 무결성 해시 (실제 SHA-256)
   encrypted: boolean;
   metadata: {
     deviceInfo: string;
@@ -30,42 +31,122 @@ export interface SecureEvidenceItem {
   verified: boolean;
 }
 
-// ─── SHA-256 해시 생성 (순수 JS 구현) ────────────────────────
-// TODO: 실제 운영 시 expo-crypto의 digestStringAsync 사용
+// ─── SHA-256 해시 생성 (실제 구현) ───────────────────────────
 
-function generateSHA256(input: string): string {
-  // 간이 해시 생성 (실제 SHA-256 아님 — 데모용)
-  // 실제 운영: import * as Crypto from 'expo-crypto';
-  // const hash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, input);
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    const char = input.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  const hex = Math.abs(hash).toString(16).padStart(8, '0');
-  // 64자리 hex string 생성 (실제 SHA-256 형식)
-  const timestamp = Date.now().toString(16).padStart(12, '0');
-  const random = Array.from({ length: 44 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-  return hex + timestamp + random;
+async function generateSHA256(input: string): Promise<string> {
+  return await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    input
+  );
 }
 
-// ─── 암호화/복호화 (시뮬레이션) ──────────────────────────────
-// TODO: 실제 운영 시 expo-crypto AES-256-GCM
+// ─── 키 관리 (SecureStore) ───────────────────────────────────
 
-function encrypt(plaintext: string): string {
-  // 시뮬레이션: Base64 인코딩 (실제로는 AES-256-GCM)
-  try {
-    return btoa(unescape(encodeURIComponent(plaintext)));
-  } catch {
-    return plaintext;
+async function getOrCreateEncryptionKey(): Promise<string> {
+  let key = await SecureStore.getItemAsync(ENCRYPTION_KEY_NAME);
+  if (!key) {
+    const randomBytes = await Crypto.getRandomBytesAsync(32);
+    key = Array.from(randomBytes)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    await SecureStore.setItemAsync(ENCRYPTION_KEY_NAME, key);
   }
+  return key;
 }
 
-function decrypt(ciphertext: string): string {
+// ─── 키 스트림 생성 (SHA-256 카운터 모드) ────────────────────
+// 마스터 키 + 블록 인덱스를 해시하여 키 스트림 바이트를 생성
+
+async function deriveKeyStream(masterKey: string, length: number): Promise<Uint8Array> {
+  const stream = new Uint8Array(length);
+  const blocksNeeded = Math.ceil(length / 32); // SHA-256 = 32 bytes per block
+
+  for (let i = 0; i < blocksNeeded; i++) {
+    const blockHash = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      `${masterKey}:block:${i}`
+    );
+    // hex string → bytes
+    for (let j = 0; j < 32 && i * 32 + j < length; j++) {
+      stream[i * 32 + j] = parseInt(blockHash.substring(j * 2, j * 2 + 2), 16);
+    }
+  }
+
+  return stream;
+}
+
+// ─── 암호화/복호화 (XOR 스트림 암호) ─────────────────────────
+
+async function encrypt(plaintext: string): Promise<string> {
+  const key = await getOrCreateEncryptionKey();
+
+  // 텍스트 → UTF-8 바이트 (TextEncoder 호환)
+  const encoder = new TextEncoder();
+  const plainBytes = encoder.encode(plaintext);
+
+  // 랜덤 nonce (16 bytes) — 같은 평문도 매번 다른 암호문 생성
+  const nonce = await Crypto.getRandomBytesAsync(16);
+  const nonceHex = Array.from(nonce)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  // 키 스트림 파생: HMAC-like — hash(key + nonce + counter)
+  const streamKey = `${key}:${nonceHex}`;
+  const keyStream = await deriveKeyStream(streamKey, plainBytes.length);
+
+  // XOR
+  const cipherBytes = new Uint8Array(plainBytes.length);
+  for (let i = 0; i < plainBytes.length; i++) {
+    cipherBytes[i] = plainBytes[i] ^ keyStream[i];
+  }
+
+  // 출력: "v2:" + nonceHex(32자) + cipherHex
+  const cipherHex = Array.from(cipherBytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  return `v2:${nonceHex}${cipherHex}`;
+}
+
+async function decrypt(ciphertext: string): Promise<string> {
+  // v2 포맷 감지
+  if (!ciphertext.startsWith('v2:')) {
+    // 레거시 Base64 폴백 (기존 데이터 호환)
+    return decryptLegacyBase64(ciphertext);
+  }
+
+  const key = await getOrCreateEncryptionKey();
+  const payload = ciphertext.slice(3); // "v2:" 제거
+
+  const nonceHex = payload.substring(0, 32);
+  const cipherHex = payload.substring(32);
+
+  // hex → bytes
+  const cipherBytes = new Uint8Array(cipherHex.length / 2);
+  for (let i = 0; i < cipherBytes.length; i++) {
+    cipherBytes[i] = parseInt(cipherHex.substring(i * 2, i * 2 + 2), 16);
+  }
+
+  // 동일한 키 스트림 재생성
+  const streamKey = `${key}:${nonceHex}`;
+  const keyStream = await deriveKeyStream(streamKey, cipherBytes.length);
+
+  // XOR (대칭 — 암호화/복호화 동일)
+  const plainBytes = new Uint8Array(cipherBytes.length);
+  for (let i = 0; i < cipherBytes.length; i++) {
+    plainBytes[i] = cipherBytes[i] ^ keyStream[i];
+  }
+
+  const decoder = new TextDecoder();
+  return decoder.decode(plainBytes);
+}
+
+/** 레거시 Base64 디코딩 폴백 (기존 저장 데이터 호환) */
+function decryptLegacyBase64(ciphertext: string): string {
   try {
     return decodeURIComponent(escape(atob(ciphertext)));
   } catch {
+    // Base64도 아닌 경우 원본 반환
     return ciphertext;
   }
 }
@@ -91,12 +172,12 @@ export async function createEvidence(params: {
   const timestamp = new Date().toISOString();
   const id = `ev-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
 
-  // 해시 생성 (원본 내용 + 타임스탬프로)
+  // 해시 생성 (원본 내용 + 타임스탬프로 — 실제 SHA-256)
   const hashInput = `${params.content}|${timestamp}|${id}`;
-  const sha256Hash = generateSHA256(hashInput);
+  const sha256Hash = await generateSHA256(hashInput);
 
   // 내용 암호화
-  const encryptedContent = encrypt(params.content);
+  const encryptedContent = await encrypt(params.content);
 
   const item: SecureEvidenceItem = {
     id,
@@ -124,18 +205,24 @@ export async function createEvidence(params: {
 /**
  * 증거 내용 복호화하여 반환
  */
-export function decryptContent(item: SecureEvidenceItem): string {
+export async function decryptContent(item: SecureEvidenceItem): Promise<string> {
   if (!item.encrypted) return item.content;
-  return decrypt(item.content);
+  return await decrypt(item.content);
 }
 
 /**
  * 증거 무결성 검증
+ * 저장된 해시와 복호화된 내용의 해시를 재계산하여 비교
  */
-export function verifyIntegrity(item: SecureEvidenceItem): boolean {
-  // 실제 운영 시: 원본 해시와 현재 내용의 해시를 비교
-  // 데모에서는 해시 존재 여부로 판단
-  return item.sha256Hash.length === 64 && item.verified;
+export async function verifyIntegrity(item: SecureEvidenceItem): Promise<boolean> {
+  try {
+    const decrypted = await decryptContent(item);
+    const hashInput = `${decrypted}|${item.timestamp}|${item.id}`;
+    const currentHash = await generateSHA256(hashInput);
+    return currentHash === item.sha256Hash;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -185,6 +272,70 @@ export async function getEvidenceStats(): Promise<{
   }
 
   return { total: items.length, byType: byType as any, byCategory };
+}
+
+// ─── 고소장 연동 API ────────────────────────────────────────
+
+/** 고소장 증거 목록용 타입 */
+export interface ComplaintEvidenceItem {
+  number: number;
+  type: string;
+  description: string;
+  timestamp: string;
+  sha256Hash: string;
+}
+
+/**
+ * ID 배열로 증거 조회
+ * 고소장 작성 시 사용자가 선택한 증거만 가져올 때 사용
+ */
+export async function getEvidenceByIds(ids: string[]): Promise<SecureEvidenceItem[]> {
+  const allItems = await loadAllEvidence();
+  return allItems.filter(item => ids.includes(item.id));
+}
+
+/**
+ * 고소장 첨부용 증거 목록 생성
+ * 시간순 정렬 + 번호 부여 + SHA-256 해시 포함
+ */
+export async function getEvidenceForComplaint(ids: string[]): Promise<ComplaintEvidenceItem[]> {
+  const selected = await getEvidenceByIds(ids);
+
+  // 시간순 정렬 (오래된 순)
+  const sorted = [...selected].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  );
+
+  // 증거 유형 한글 변환
+  const typeLabels: Record<EvidenceType, string> = {
+    image: '사진/캡처',
+    audio: '음성/녹음',
+    text: '텍스트 메모',
+    file: '파일',
+  };
+
+  return sorted.map((item, idx) => ({
+    number: idx + 1,
+    type: typeLabels[item.type] || item.type,
+    description: item.title,
+    timestamp: formatTimestampKR(item.timestamp),
+    sha256Hash: item.sha256Hash,
+  }));
+}
+
+/** ISO 타임스탬프 → 한국식 표기 (내부 헬퍼) */
+function formatTimestampKR(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    const h = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${y}년 ${m}월 ${day}일 ${h}:${min}`;
+  } catch {
+    return iso;
+  }
 }
 
 // ─── 내부 헬퍼 ───────────────────────────────────────────────

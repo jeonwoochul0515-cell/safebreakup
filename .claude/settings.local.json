@@ -43,7 +43,24 @@
       "Bash(xargs sed:*)",
       "Bash(cd:*)",
       "Bash(npx expo-doctor:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:blog.ehyun.co.kr)",
+      "WebFetch(domain:www.daeryunlaw-finance.com)",
+      "WebFetch(domain:www.moleg.go.kr)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Bash(python -m pip install pymupdf)",
+      "Bash(python3 -m pip install pymupdf)",
+      "Bash(where python:*)",
+      "Bash(where python3:*)",
+      "Bash(where pip:*)",
+      "Bash(where pip3:*)",
+      "Bash(npx pdf-parse:*)",
+      "Bash(grep -r \"AsyncStorage\\\\|localStorage\\\\|sessionStorage\" /c/Users/jeonw/.antigravity/safebreakup/safebreakup/app /c/Users/jeonw/.antigravity/safebreakup/safebreakup/lib --include=*.tsx --include=*.ts)",
+      "Bash(grep -r \"export default\\\\|export function\" /c/Users/jeonw/.antigravity/safebreakup/safebreakup/app --include=*.tsx)",
+      "Bash(grep -r \"import.*from.*app\\\\|import.*from.*screens\" /c/Users/jeonw/.antigravity/safebreakup/safebreakup --include=*.tsx --include=*.ts)"
     ]
   }
 }
