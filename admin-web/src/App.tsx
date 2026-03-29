@@ -12,6 +12,10 @@ import UserDetail from './pages/UserDetail';
 import Documents from './pages/Documents';
 import SOSLogs from './pages/SOSLogs';
 import Revenue from './pages/Revenue';
+import Evidence from './pages/Evidence';
+import Consultations from './pages/Consultations';
+import Content from './pages/Content';
+import LetterGenerator from './pages/LetterGenerator';
 
 function App() {
   // TODO: Firestore 연동 — Firebase Auth 상태로 교체
@@ -46,6 +50,10 @@ function App() {
           <Route path="/documents" element={<Documents />} />
           <Route path="/sos-logs" element={<SOSLogs />} />
           <Route path="/revenue" element={<Revenue />} />
+          <Route path="/evidence" element={<Evidence />} />
+          <Route path="/consultations" element={<Consultations />} />
+          <Route path="/content" element={<Content />} />
+          <Route path="/letter-generator" element={<LetterGenerator />} />
         </Route>
       </Routes>
     </BrowserRouter>

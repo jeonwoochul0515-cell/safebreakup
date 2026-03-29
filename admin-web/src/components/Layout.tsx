@@ -11,6 +11,10 @@ const navItems = [
   { path: '/documents', label: '서류현황', icon: '📄' },
   { path: '/sos-logs', label: 'SOS 로그', icon: '🚨' },
   { path: '/revenue', label: '매출', icon: '💰' },
+  { path: '/evidence', label: '증거 검토', icon: '🔍' },
+  { path: '/consultations', label: '상담 관리', icon: '💬' },
+  { path: '/content', label: '콘텐츠', icon: '📝' },
+  { path: '/letter-generator', label: '경고장 생성', icon: '✉️' },
 ];
 
 export default function Layout({ onLogout }: LayoutProps) {

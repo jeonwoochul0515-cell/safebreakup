@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { Stack, usePathname, useSegments, useRouter } from 'expo-router';
+import { Stack, useSegments, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
@@ -54,21 +54,19 @@ function RootNavigator() {
   const { isStealthMode, setStealthMode, safetySettings } = useAppContext();
   const [showSOS, setShowSOS] = useState(false);
   const [showLeadMagnet, setShowLeadMagnet] = useState(false);
-  const pathname = usePathname();
-  const isAdmin = pathname.startsWith('/admin');
+
 
   useShakeDetection(() => setStealthMode(true), safetySettings.quickExitTrigger === 'shake');
 
-  // Lead magnet popup after 30 seconds (어드민에서는 비활성)
+  // Lead magnet popup after 30 seconds
   useEffect(() => {
-    if (isAdmin) return;
     const timer = setTimeout(() => {
       if (!isStealthMode) {
         setShowLeadMagnet(true);
       }
     }, 30000);
     return () => clearTimeout(timer);
-  }, [isStealthMode, isAdmin]);
+  }, [isStealthMode]);
 
   const handleEnableStealthMode = useCallback(() => {
     setShowSOS(false);
@@ -236,8 +234,8 @@ function RootNavigator() {
         <Stack.Screen name="services-hub" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
 
-      {/* Floating SOS button — 어드민 제외 */}
-      {!isAdmin && <FloatingSOS onPress={() => setShowSOS(true)} />}
+      {/* Floating SOS button */}
+      <FloatingSOS onPress={() => setShowSOS(true)} />
 
       {/* SOS emergency modal */}
       <SOSModal

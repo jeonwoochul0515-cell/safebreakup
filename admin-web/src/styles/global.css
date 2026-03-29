@@ -527,6 +527,73 @@ body {
   border-color: #C4956A;
 }
 
+/* ── 소형 버튼 ── */
+
+.btn-sm {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.btn-sm.btn-primary {
+  background: #4A90D9;
+  color: #fff;
+  border-color: #4A90D9;
+}
+
+.btn-sm.btn-primary:hover {
+  background: #3A7BC8;
+}
+
+.btn-sm.btn-success {
+  background: #6B9080;
+  color: #fff;
+  border-color: #6B9080;
+}
+
+.btn-sm.btn-success:hover {
+  background: #5A7F6F;
+}
+
+.btn-sm.btn-danger {
+  background: #E07A5F;
+  color: #fff;
+  border-color: #E07A5F;
+}
+
+.btn-sm.btn-danger:hover {
+  background: #D0694E;
+}
+
+.btn-sm.btn-outline {
+  background: #fff;
+  color: #2D2B3D;
+  border-color: #ddd;
+}
+
+.btn-sm.btn-outline:hover {
+  border-color: #C4956A;
+  color: #C4956A;
+}
+
+/* ── stat-value / stat-label (새 페이지용) ── */
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2D2B3D;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #888;
+  margin-top: 4px;
+}
+
 /* ── 반응형 ── */
 
 @media (max-width: 1024px) {
