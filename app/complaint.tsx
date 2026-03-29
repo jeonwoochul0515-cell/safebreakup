@@ -755,9 +755,31 @@ export default function ComplaintScreen() {
             onDownloadPDF={handleDownloadPDF}
             onEdit={handleEdit}
           />
+
+          {/* 책임 한계 고지 (강화) */}
+          <View style={styles.disclaimerWarningCard}>
+            <View style={styles.disclaimerWarningHeader}>
+              <Ionicons name="warning" size={22} color="#B91C1C" />
+              <Text style={styles.disclaimerWarningTitle}>책임 한계 고지</Text>
+            </View>
+            <Text style={styles.disclaimerWarningBody}>
+              이 서류는 AI가 생성한 초안입니다. 변호사 검토를 거치지 않았습니다.
+            </Text>
+            <Text style={styles.disclaimerWarningBody}>
+              법적 효력을 보장하지 않으며, 제출 전 전문가 검토를 권장합니다.
+            </Text>
+            <TouchableOpacity
+              style={styles.lawyerReviewCta}
+              onPress={() => Alert.alert('변호사 검토', '변호사 검토 서비스 상담을 연결합니다.')}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="shield-checkmark" size={18} color={COLORS.white} />
+              <Text style={styles.lawyerReviewCtaText}>변호사 검토 서비스 (199,000원)</Text>
+            </TouchableOpacity>
+          </View>
+
           <Text style={styles.disclaimerText}>
-            본 고소장은 AI가 작성한 초안이며,{'\n'}
-            법률사무소 청송 담당 변호사의 검토를 거쳐 최종 확정됩니다.
+            법률사무소 청송 / 대표변호사 김창희
           </Text>
         </ScrollView>
       )}
@@ -1260,5 +1282,48 @@ const styles = StyleSheet.create({
     lineHeight: FONT_SIZE.xs * 1.6,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.lg,
+  },
+
+  // ── Disclaimer Warning Card (강화) ──
+  disclaimerWarningCard: {
+    marginHorizontal: SPACING.lg,
+    marginTop: SPACING.lg,
+    padding: SPACING.lg,
+    borderRadius: RADIUS.md,
+    borderWidth: 2,
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
+  },
+  disclaimerWarningHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  disclaimerWarningTitle: {
+    fontSize: FONT_SIZE.lg,
+    fontWeight: '700',
+    color: '#B91C1C',
+  },
+  disclaimerWarningBody: {
+    fontSize: FONT_SIZE.sm,
+    color: '#991B1B',
+    lineHeight: FONT_SIZE.sm * 1.6,
+    marginBottom: SPACING.xs,
+  },
+  lawyerReviewCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    backgroundColor: '#B91C1C',
+    borderRadius: RADIUS.full,
+    paddingVertical: SPACING.md,
+    marginTop: SPACING.md,
+  },
+  lawyerReviewCtaText: {
+    fontSize: FONT_SIZE.md,
+    fontWeight: '700',
+    color: COLORS.white,
   },
 });

@@ -25,7 +25,7 @@ export interface User {
   nickname?: string;
   created_at: string;
   updated_at: string;
-  subscription_tier: 'free' | 'basic' | 'premium';
+  subscription_tier: 'free' | 'standard';
   is_active: boolean;
 }
 

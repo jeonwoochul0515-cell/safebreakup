@@ -176,10 +176,10 @@ export const SUBSCRIPTION_PLANS = [
   {
     id: 'care',
     name: '보호우산 케어플랜',
-    monthlyPrice: 4900,
-    annualMonthlyPrice: 4100,
-    priceLabel: '4,900원',
-    annualPriceLabel: '4,100원',
+    monthlyPrice: 9900,
+    annualMonthlyPrice: 6900,
+    priceLabel: '9,900원',
+    annualPriceLabel: '6,900원',
     period: '/월',
     tagline: '변호사 상담까지 한번에',
     features: [
@@ -197,7 +197,7 @@ export const SUBSCRIPTION_PLANS = [
 ];
 
 export const ADDON_SERVICES = [
-  { id: 'consult', name: '변호사 상담 (1회)', price: 29000, priceLabel: '29,000원', icon: 'call-outline' },
+  { id: 'consult', name: '변호사 상담 (10분)', price: 70000, priceLabel: '70,000원', icon: 'call-outline' },
   { id: 'letter_email', name: '법률 경고장 (이메일/SNS)', price: 49000, priceLabel: '49,000원', icon: 'mail-outline' },
   { id: 'letter_mail', name: '내용증명 (우편)', price: 99000, priceLabel: '99,000원', icon: 'document-text-outline' },
 ];

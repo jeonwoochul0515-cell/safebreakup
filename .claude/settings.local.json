@@ -60,7 +60,13 @@
       "Bash(npx pdf-parse:*)",
       "Bash(grep -r \"AsyncStorage\\\\|localStorage\\\\|sessionStorage\" /c/Users/jeonw/.antigravity/safebreakup/safebreakup/app /c/Users/jeonw/.antigravity/safebreakup/safebreakup/lib --include=*.tsx --include=*.ts)",
       "Bash(grep -r \"export default\\\\|export function\" /c/Users/jeonw/.antigravity/safebreakup/safebreakup/app --include=*.tsx)",
-      "Bash(grep -r \"import.*from.*app\\\\|import.*from.*screens\" /c/Users/jeonw/.antigravity/safebreakup/safebreakup --include=*.tsx --include=*.ts)"
+      "Bash(grep -r \"import.*from.*app\\\\|import.*from.*screens\" /c/Users/jeonw/.antigravity/safebreakup/safebreakup --include=*.tsx --include=*.ts)",
+      "Bash(ls:*)",
+      "Bash(head -50 /c/Users/jeonw/.antigravity/safebreakup/safebreakup/app/\\\\\\(tabs\\\\\\)/_layout.tsx)",
+      "Bash(head -100 /c/Users/jeonw/.antigravity/safebreakup/safebreakup/app/\\\\\\(tabs\\\\\\)/my-page.tsx)",
+      "Bash(cat /c/Users/jeonw/.antigravity/safebreakup/safebreakup/app/\\\\\\(tabs\\\\\\)/_layout.tsx)",
+      "Bash(grep -r 4,900 --include=*.ts --include=*.tsx -l)",
+      "Bash(grep -r 99,000원 --include=*.ts --include=*.tsx -l)"
     ]
   }
 }

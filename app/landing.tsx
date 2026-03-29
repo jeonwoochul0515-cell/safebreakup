@@ -497,7 +497,7 @@ export default function LandingScreen() {
                 <Text style={[styles.tierBadgeText, { color: COLORS.plum }]}>케어</Text>
               </View>
               <Text style={styles.tierPrice}>
-                {billingAnnual ? '2,900원' : '4,900원'}
+                {billingAnnual ? '6,900원' : '9,900원'}
               </Text>
               <Text style={styles.tierPeriod}>/월</Text>
             </View>

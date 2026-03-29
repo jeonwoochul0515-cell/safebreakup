@@ -325,7 +325,7 @@ export default function HomeScreen() {
               { title: '디지털 성범죄', sub: '긴급 대응 & 삭제요청', icon: 'lock-closed' as const, color: COLORS.plum, route: '/ncii-response', isNew: true },
               { title: '가스라이팅 테스트', sub: '15문항 자가진단', icon: 'bulb' as const, color: '#D4A373', route: '/gaslighting-test', isNew: true },
               { title: '트라우마 회복', sub: '그라운딩 & 호흡법', icon: 'heart' as const, color: COLORS.sage, route: '/grounding', isNew: true },
-              { title: '증거 포렌식', sub: 'SHA-256 무결성 보장', icon: 'finger-print' as const, color: COLORS.gold, route: '/evidence-forensics', isNew: true },
+              { title: '증거 관리', sub: '암호화 보관 & AI 분석', icon: 'finger-print' as const, color: COLORS.gold, route: '/evidence', isNew: true },
               { title: '이별 안전 경호', sub: '전문 경호원 현장 동행', icon: 'shield' as const, color: COLORS.coralDark, route: '/escort-service', isNew: true },
               // { title: 'ADT캡스 안심팩', sub: 'SOS→긴급출동 연계', icon: 'shield-checkmark' as const, color: '#0066CC', route: '/security-partner', isNew: true },
             ].map((m, i) => (
@@ -345,8 +345,8 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <TouchableOpacity style={styles.premiumBanner} onPress={() => router.push('/landing' as any)} activeOpacity={0.85}>
             <View>
-              <Text style={styles.premiumTitle}>보호우산 케어 플랜</Text>
-              <Text style={styles.premiumSub}>커피 한 잔 값으로 법적 보호를 · 월 4,900원</Text>
+              <Text style={styles.premiumTitle}>스탠다드 플랜</Text>
+              <Text style={styles.premiumSub}>AI 법률 서류 무제한 · 월 9,900원</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.gold} />
           </TouchableOpacity>

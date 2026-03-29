@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,25 +11,36 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOW } from '@/constants/theme';
-import { SUBSCRIPTION_PLANS, ADDON_SERVICES, LEGAL } from '@/constants/legal';
-import PricingToggle from '@/components/PricingToggle';
-import ROICalculator from '@/components/ROICalculator';
+import { LEGAL } from '@/constants/legal';
 
 // ---------------------------------------------------------------------------
-// Trust Signals
+// Plan Data
 // ---------------------------------------------------------------------------
 
-const TRUST_SIGNALS = [
-  { icon: 'business-outline' as const, text: '법률사무소 직접 운영' },
-  { icon: 'person-outline' as const, text: '변호사 직접 검토' },
-  { icon: 'lock-closed-outline' as const, text: '안전한 결제' },
+const FREE_FEATURES = [
+  'AI 사무장 상담 (3회/월)',
+  '위험도 자가진단',
+  'SOS 긴급 연락처',
+  '안전 이별 체크리스트',
 ];
 
-// ---------------------------------------------------------------------------
-// Payment Methods
-// ---------------------------------------------------------------------------
+const STANDARD_FEATURES = [
+  'AI 사무장 24시간 무제한 상담',
+  '위험도 자가진단',
+  'SOS 긴급 연락처',
+  '안전 이별 체크리스트',
+  '증거보관함 무제한',
+  'AI 법률 서류 무제한 생성',
+  '고소장 / 경고장 / 내용증명',
+  '디지털 안전 점검',
+];
 
-const PAYMENT_METHODS = ['토스페이', '카카오페이', '네이버페이'];
+const ADDON_SERVICES = [
+  { id: 'consult', name: '변호사 상담 (1회)', price: '29,000원', icon: 'call-outline' as const },
+  { id: 'letter_email', name: '법률 경고장 (이메일/SNS)', price: '49,000원', icon: 'mail-outline' as const },
+  { id: 'letter_mail', name: '내용증명 (우편)', price: '99,000원', icon: 'document-text-outline' as const },
+  { id: 'lawyer_review', name: '변호사 서류 검토', price: '199,000원', icon: 'shield-checkmark-outline' as const },
+];
 
 // ---------------------------------------------------------------------------
 // Main Screen
@@ -38,23 +49,12 @@ const PAYMENT_METHODS = ['토스페이', '카카오페이', '네이버페이'];
 export default function SubscriptionScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [isAnnual, setIsAnnual] = useState(false);
-
-  const lightPlan = SUBSCRIPTION_PLANS.find((p) => p.id === 'light')!;
-  const carePlan = SUBSCRIPTION_PLANS.find((p) => p.id === 'care')!;
-
-  const currentPrice = isAnnual ? lightPlan.annualMonthlyPrice : lightPlan.monthlyPrice;
-  const currentPriceLabel = isAnnual ? lightPlan.annualPriceLabel : lightPlan.priceLabel;
 
   const handleSubscribe = useCallback(() => {
     Alert.alert('안내', '서비스 출시 준비 중입니다.');
   }, []);
 
-  const handleNotify = useCallback(() => {
-    Alert.alert('알림 등록', '케어플랜 출시 시 알림을 보내드리겠습니다.');
-  }, []);
-
-  const handleAddon = useCallback((name: string) => {
+  const handleAddon = useCallback((_name: string) => {
     Alert.alert('안내', '서비스 출시 준비 중입니다.');
   }, []);
 
@@ -69,7 +69,7 @@ export default function SubscriptionScreen() {
         >
           <Ionicons name="chevron-back" size={24} color={COLORS.darkText} />
         </TouchableOpacity>
-        <Text style={styles.navTitle}>보호우산</Text>
+        <Text style={styles.navTitle}>구독 플랜</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -85,169 +85,110 @@ export default function SubscriptionScreen() {
         {/* Header */}
         {/* ============================================================= */}
         <View style={styles.header}>
-          <Text style={styles.headerEmoji}>{'\u2602\uFE0F'}</Text>
-          <Text style={styles.title}>보호우산</Text>
-          <Text style={styles.subtitle}>나에게 맞는 보호를 선택하세요</Text>
-        </View>
-
-        {/* Pricing Toggle */}
-        <View style={styles.toggleWrapper}>
-          <PricingToggle isAnnual={isAnnual} onToggle={setIsAnnual} />
+          <Ionicons name="shield-checkmark" size={44} color={COLORS.gold} />
+          <Text style={styles.title}>나에게 맞는 보호를 선택하세요</Text>
         </View>
 
         {/* ============================================================= */}
-        {/* 보호우산 라이트 — Main Plan Card */}
+        {/* 2-Tier Comparison */}
         {/* ============================================================= */}
-        <View style={styles.mainCard}>
-          {/* Rose gold left accent line */}
-          <View style={styles.mainCardAccent} />
+        <View style={styles.comparisonRow}>
+          {/* ── Free ── */}
+          <View style={styles.planCard}>
+            <Text style={styles.planName}>무료</Text>
+            <Text style={styles.planPrice}>0원</Text>
+            <Text style={styles.planPeriod}>/월</Text>
 
-          {/* Recommended badge */}
-          <View style={styles.recommendedBadge}>
-            <Text style={styles.recommendedText}>추천</Text>
-          </View>
-
-          <Text style={styles.mainCardName}>{lightPlan.name}</Text>
-
-          {/* Price */}
-          <View style={styles.priceRow}>
-            <Text style={styles.pricePrefix}>월 </Text>
-            <Text style={styles.priceValue}>{currentPriceLabel}</Text>
-          </View>
-          {isAnnual && (
-            <Text style={styles.annualNote}>
-              연간 결제 시 (월 {lightPlan.priceLabel} {'\u2192'} {lightPlan.annualPriceLabel})
-            </Text>
-          )}
-
-          <Text style={styles.mainCardTagline}>{lightPlan.tagline}</Text>
-
-          {/* Features */}
-          <View style={styles.featureList}>
-            {lightPlan.features.map((feature, idx) => (
-              <View key={idx} style={styles.featureRow}>
-                <View style={styles.featureCheckCircle}>
-                  <Ionicons name="checkmark" size={11} color={COLORS.white} />
+            <View style={styles.featureList}>
+              {FREE_FEATURES.map((f, i) => (
+                <View key={i} style={styles.featureRow}>
+                  <Ionicons name="checkmark-circle" size={16} color={COLORS.sage} />
+                  <Text style={styles.featureText}>{f}</Text>
                 </View>
-                <Text style={styles.featureText}>{feature}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* CTA */}
-          <TouchableOpacity
-            style={styles.mainCta}
-            onPress={handleSubscribe}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.mainCtaText}>시작하기</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ============================================================= */}
-        {/* 케어플랜 — Coming Soon Card */}
-        {/* ============================================================= */}
-        <View style={styles.comingSoonCard}>
-          {/* Coming soon badge */}
-          <View style={styles.comingSoonBadge}>
-            <Text style={styles.comingSoonBadgeText}>{carePlan.comingSoonLabel}</Text>
-          </View>
-
-          <Text style={styles.comingSoonName}>{carePlan.name}</Text>
-          <Text style={styles.comingSoonTagline}>{carePlan.tagline}</Text>
-
-          {/* Price */}
-          <View style={styles.priceRow}>
-            <Text style={[styles.pricePrefix, { color: COLORS.slate }]}>월 </Text>
-            <Text style={[styles.priceValue, { color: COLORS.slate, fontSize: FONT_SIZE.xxl }]}>
-              {isAnnual ? carePlan.annualPriceLabel : carePlan.priceLabel}
-            </Text>
-          </View>
-
-          {/* Features */}
-          <View style={styles.featureList}>
-            {carePlan.features.map((feature, idx) => (
-              <View key={idx} style={styles.featureRow}>
-                <View style={[styles.featureCheckCircle, { backgroundColor: `${COLORS.plum}60` }]}>
-                  <Ionicons name="checkmark" size={11} color={COLORS.white} />
+              ))}
+              {/* Features only in standard — shown as X */}
+              {['증거보관함 무제한', 'AI 법률 서류 무제한', '디지털 안전 점검'].map((f, i) => (
+                <View key={`no-${i}`} style={styles.featureRow}>
+                  <Ionicons name="close-circle" size={16} color={COLORS.lightText} />
+                  <Text style={[styles.featureText, { color: COLORS.lightText }]}>{f}</Text>
                 </View>
-                <Text style={[styles.featureText, { color: COLORS.slate }]}>
-                  {feature}
-                </Text>
-              </View>
-            ))}
+              ))}
+            </View>
+
+            <View style={styles.currentBadge}>
+              <Text style={styles.currentBadgeText}>현재 플랜</Text>
+            </View>
           </View>
 
-          {/* Notify CTA */}
-          <TouchableOpacity
-            style={styles.notifyCta}
-            onPress={handleNotify}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.notifyCtaText}>출시 알림 받기</Text>
-          </TouchableOpacity>
+          {/* ── Standard ── */}
+          <View style={[styles.planCard, styles.standardCard]}>
+            <View style={styles.recommendedBadge}>
+              <Text style={styles.recommendedText}>추천</Text>
+            </View>
+            <Text style={[styles.planName, { color: COLORS.white }]}>스탠다드</Text>
+            <Text style={[styles.planPrice, { color: COLORS.gold }]}>9,900원</Text>
+            <Text style={[styles.planPeriod, { color: COLORS.goldLight }]}>/월</Text>
+
+            <View style={styles.featureList}>
+              {STANDARD_FEATURES.map((f, i) => (
+                <View key={i} style={styles.featureRow}>
+                  <Ionicons name="checkmark-circle" size={16} color={COLORS.gold} />
+                  <Text style={[styles.featureText, { color: COLORS.white }]}>{f}</Text>
+                </View>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={styles.standardCta}
+              onPress={handleSubscribe}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.standardCtaText}>스탠다드 시작하기</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ============================================================= */}
-        {/* ROI Section */}
+        {/* 책임 한계 고지 */}
+        {/* ============================================================= */}
+        <View style={styles.disclaimerWarningCard}>
+          <View style={styles.disclaimerWarningHeader}>
+            <Ionicons name="warning" size={22} color="#B91C1C" />
+            <Text style={styles.disclaimerWarningTitle}>책임 한계 고지</Text>
+          </View>
+          <Text style={styles.disclaimerWarningBody}>
+            본 서비스에서 AI가 생성하는 법률 서류(고소장, 경고장 등)는 자동 생성된 초안이며, 변호사의 개별 검토를 거치지 않았습니다.
+          </Text>
+          <Text style={styles.disclaimerWarningBody}>
+            법적 효력을 보장하지 않으며, 실제 제출 전 반드시 전문가 검토를 권장합니다. 구독 시 이에 동의한 것으로 간주합니다.
+          </Text>
+        </View>
+
+        {/* ============================================================= */}
+        {/* Add-on (건별 유료 서비스) */}
         {/* ============================================================= */}
         <View style={styles.section}>
-          <ROICalculator monthlyPrice={currentPrice} />
-        </View>
-
-        {/* ============================================================= */}
-        {/* Add-on Services */}
-        {/* ============================================================= */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>필요할 때 개별 이용</Text>
+          <Text style={styles.sectionTitle}>건별 유료 서비스</Text>
+          <Text style={styles.sectionSub}>필요할 때 개별적으로 이용할 수 있습니다</Text>
           <View style={styles.addonGrid}>
             {ADDON_SERVICES.map((addon) => (
-              <View key={addon.id} style={styles.addonCard}>
+              <TouchableOpacity
+                key={addon.id}
+                style={styles.addonCard}
+                onPress={() => handleAddon(addon.name)}
+                activeOpacity={0.8}
+              >
                 <View style={styles.addonIconCircle}>
-                  <Ionicons
-                    name={addon.icon as any}
-                    size={22}
-                    color={COLORS.gold}
-                  />
+                  <Ionicons name={addon.icon} size={22} color={COLORS.gold} />
                 </View>
                 <View style={styles.addonInfo}>
                   <Text style={styles.addonName}>{addon.name}</Text>
-                  <Text style={styles.addonPrice}>{addon.priceLabel}</Text>
+                  <Text style={styles.addonPrice}>{addon.price}</Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.addonCta}
-                  onPress={() => handleAddon(addon.name)}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.addonCtaText}>신청하기</Text>
-                </TouchableOpacity>
-              </View>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.lightText} />
+              </TouchableOpacity>
             ))}
           </View>
-        </View>
-
-        {/* ============================================================= */}
-        {/* Trust Section */}
-        {/* ============================================================= */}
-        <View style={styles.trustRow}>
-          {TRUST_SIGNALS.map((signal, idx) => (
-            <View key={idx} style={styles.trustItem}>
-              <Ionicons name="checkmark-circle" size={16} color={COLORS.gold} />
-              <Text style={styles.trustText}>{signal.text}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* ============================================================= */}
-        {/* Payment Methods */}
-        {/* ============================================================= */}
-        <View style={styles.paymentRow}>
-          {PAYMENT_METHODS.map((method, idx) => (
-            <React.Fragment key={method}>
-              {idx > 0 && <Text style={styles.paymentDot}>{'\u00B7'}</Text>}
-              <Text style={styles.paymentLabel}>{method}</Text>
-            </React.Fragment>
-          ))}
         </View>
 
         {/* ============================================================= */}
@@ -307,126 +248,100 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingTop: SPACING.xl,
-    paddingBottom: SPACING.md,
-  },
-  headerEmoji: {
-    fontSize: 48,
-    marginBottom: SPACING.sm,
+    paddingBottom: SPACING.lg,
+    gap: SPACING.sm,
   },
   title: {
-    fontSize: FONT_SIZE.hero,
-    fontWeight: '800',
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '700',
     color: COLORS.darkText,
-    marginBottom: SPACING.xs,
-  },
-  subtitle: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.slate,
     textAlign: 'center',
   },
 
-  // Toggle wrapper
-  toggleWrapper: {
-    alignItems: 'center',
+  // ===== Comparison Row =====
+  comparisonRow: {
+    gap: SPACING.md,
     marginBottom: SPACING.lg,
   },
 
-  // ===== Main Plan Card (Light) =====
-  mainCard: {
+  // Plan Card (shared)
+  planCard: {
     backgroundColor: COLORS.cardBg,
     borderRadius: RADIUS.lg,
-    padding: 28,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderLight,
+  },
+  standardCard: {
+    backgroundColor: COLORS.navy,
+    borderColor: COLORS.gold,
+    borderWidth: 2,
+  },
+
+  planName: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: '700',
+    color: COLORS.darkText,
+    marginBottom: SPACING.xs,
+  },
+  planPrice: {
+    fontSize: FONT_SIZE.hero,
+    fontWeight: '800',
+    color: COLORS.darkText,
+  },
+  planPeriod: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.slate,
     marginBottom: SPACING.md,
-    overflow: 'hidden',
-    ...SHADOW.md,
   },
-  mainCardAccent: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 3,
-    backgroundColor: COLORS.gold,
-    borderTopLeftRadius: RADIUS.lg,
-    borderBottomLeftRadius: RADIUS.lg,
+
+  // Features
+  featureList: {
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
   },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  featureText: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.darkText,
+    flex: 1,
+    lineHeight: FONT_SIZE.sm * 1.5,
+  },
+
+  // Badges
   recommendedBadge: {
     alignSelf: 'flex-start',
     backgroundColor: COLORS.gold,
     paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs + 2,
+    paddingVertical: SPACING.xs,
     borderRadius: RADIUS.full,
-    marginBottom: SPACING.md,
-    ...SHADOW.sm,
+    marginBottom: SPACING.sm,
   },
   recommendedText: {
     fontSize: FONT_SIZE.xs,
     fontWeight: '700',
     color: COLORS.white,
   },
-  mainCardName: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '700',
-    color: COLORS.darkText,
-    marginBottom: SPACING.sm,
+  currentBadge: {
+    alignSelf: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.borderLight,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.full,
   },
-  mainCardTagline: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.slate,
-    marginBottom: SPACING.xs,
-  },
-
-  // Price
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: SPACING.xs,
-  },
-  pricePrefix: {
-    fontSize: FONT_SIZE.lg,
-    fontWeight: '600',
-    color: COLORS.darkText,
-  },
-  priceValue: {
-    fontSize: FONT_SIZE.hero,
-    fontWeight: '800',
-    color: COLORS.darkText,
-  },
-  annualNote: {
-    fontSize: FONT_SIZE.xs,
-    color: COLORS.gold,
-    marginBottom: SPACING.sm,
-  },
-
-  // Features (shared)
-  featureList: {
-    gap: SPACING.md,
-    marginTop: SPACING.md,
-    marginBottom: SPACING.lg,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 28,
-  },
-  featureCheckCircle: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: COLORS.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: SPACING.sm + 4,
-  },
-  featureText: {
+  currentBadgeText: {
     fontSize: FONT_SIZE.md,
-    color: COLORS.darkText,
-    flex: 1,
-    lineHeight: 22,
+    fontWeight: '600',
+    color: COLORS.slate,
   },
 
-  // Main CTA
-  mainCta: {
+  // Standard CTA
+  standardCta: {
     alignItems: 'center',
     justifyContent: 'center',
     height: 52,
@@ -434,61 +349,37 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.gold,
     ...SHADOW.sm,
   },
-  mainCtaText: {
+  standardCtaText: {
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
     color: COLORS.white,
   },
 
-  // ===== Coming Soon Card (Care Plan) =====
-  comingSoonCard: {
-    backgroundColor: COLORS.cardBg,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1.5,
-    borderColor: COLORS.lavender,
-    padding: 28,
+  // ===== Disclaimer Warning Card =====
+  disclaimerWarningCard: {
+    padding: SPACING.lg,
+    borderRadius: RADIUS.md,
+    borderWidth: 2,
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
     marginBottom: SPACING.xl,
-    opacity: 0.85,
   },
-  comingSoonBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: COLORS.plum,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs + 2,
-    borderRadius: RADIUS.full,
-    marginBottom: SPACING.md,
-  },
-  comingSoonBadgeText: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '700',
-    color: COLORS.white,
-  },
-  comingSoonName: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: '700',
-    color: COLORS.darkText,
-    marginBottom: SPACING.xs,
-  },
-  comingSoonTagline: {
-    fontSize: FONT_SIZE.sm,
-    color: COLORS.lightText,
-    marginBottom: SPACING.md,
-  },
-
-  // Notify CTA
-  notifyCta: {
+  disclaimerWarningHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    height: 52,
-    borderRadius: RADIUS.full,
-    borderWidth: 1.5,
-    borderColor: COLORS.plum,
-    backgroundColor: 'transparent',
+    gap: SPACING.sm,
+    marginBottom: SPACING.sm,
   },
-  notifyCtaText: {
+  disclaimerWarningTitle: {
     fontSize: FONT_SIZE.lg,
     fontWeight: '700',
-    color: COLORS.plum,
+    color: '#B91C1C',
+  },
+  disclaimerWarningBody: {
+    fontSize: FONT_SIZE.sm,
+    color: '#991B1B',
+    lineHeight: FONT_SIZE.sm * 1.6,
+    marginBottom: SPACING.xs,
   },
 
   // ===== Section =====
@@ -499,6 +390,11 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.xl,
     fontWeight: '700',
     color: COLORS.darkText,
+    marginBottom: SPACING.xs,
+  },
+  sectionSub: {
+    fontSize: FONT_SIZE.sm,
+    color: COLORS.slate,
     marginBottom: SPACING.md,
   },
 
@@ -537,57 +433,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.sm,
     fontWeight: '700',
     color: COLORS.gold,
-  },
-  addonCta: {
-    borderWidth: 1.5,
-    borderColor: COLORS.gold,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    borderRadius: RADIUS.full,
-    minHeight: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addonCtaText: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '700',
-    color: COLORS.gold,
-  },
-
-  // ===== Trust =====
-  trustRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: SPACING.lg,
-    paddingHorizontal: SPACING.xs,
-  },
-  trustItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  trustText: {
-    fontSize: FONT_SIZE.xs,
-    fontWeight: '600',
-    color: COLORS.slate,
-  },
-
-  // ===== Payment Methods =====
-  paymentRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: SPACING.xl,
-    gap: SPACING.sm,
-  },
-  paymentLabel: {
-    fontSize: FONT_SIZE.sm,
-    fontWeight: '500',
-    color: COLORS.lightText,
-  },
-  paymentDot: {
-    fontSize: FONT_SIZE.lg,
-    color: COLORS.lightText,
   },
 
   // ===== Footer =====

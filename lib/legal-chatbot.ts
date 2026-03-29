@@ -414,8 +414,8 @@ export function generateResponse(sessionId: string, userMessage: string): Chatbo
 
     response += '\n안전이별에서 바로 도와드릴 수 있습니다:\n';
     response += '✅ 변호사 명의 법률 경고장 발송 (49,000원~)\n';
-    response += '✅ 경찰 제출용 증거 보고서 작성 (99,000원)\n';
-    response += '✅ 증거 수집 & 포렌식 보관\n';
+    response += '✅ AI 서류 작성 (고소장/경고장/내용증명)\n';
+    response += '✅ 증거 수집 & 암호화 보관\n';
 
     if (allCategories.includes('stalking')) {
       response += '✅ 스토킹 사건 체계적 기록\n';
@@ -466,7 +466,7 @@ export function generateResponse(sessionId: string, userMessage: string): Chatbo
       response += '• 증거 정리 (캡처, 녹음 등)\n';
       response += '• 피해 사실 정리 (날짜, 횟수)\n';
       response += '• 신분증 지참\n\n';
-      response += '안전이별에서 경찰 제출용 보고서를 만들어드릴까요? (99,000원)';
+      response += '안전이별의 고소장/서류 작성 기능을 이용해보세요. AI가 경찰 제출용 서류를 작성해드립니다.';
     } else if (lower.includes('상담') || lower.includes('변호사')) {
       response = '전문가 상담은 현명한 선택이에요.\n\n';
       response += '📞 무료 상담:\n';
