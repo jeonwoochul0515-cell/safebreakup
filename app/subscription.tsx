@@ -125,7 +125,7 @@ export default function SubscriptionScreen() {
             <View style={styles.recommendedBadge}>
               <Text style={styles.recommendedText}>추천</Text>
             </View>
-            <Text style={[styles.planName, { color: COLORS.white }]}>스탠다드</Text>
+            <Text style={[styles.planName, { color: COLORS.white }]}>유료회원</Text>
             <Text style={[styles.planPrice, { color: COLORS.gold }]}>9,900원</Text>
             <Text style={[styles.planPeriod, { color: COLORS.goldLight }]}>/월</Text>
 
@@ -143,7 +143,7 @@ export default function SubscriptionScreen() {
               onPress={handleSubscribe}
               activeOpacity={0.85}
             >
-              <Text style={styles.standardCtaText}>스탠다드 시작하기</Text>
+              <Text style={styles.standardCtaText}>유료회원 시작하기</Text>
             </TouchableOpacity>
           </View>
         </View>

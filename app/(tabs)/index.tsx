@@ -345,7 +345,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <TouchableOpacity style={styles.premiumBanner} onPress={() => router.push('/landing' as any)} activeOpacity={0.85}>
             <View>
-              <Text style={styles.premiumTitle}>스탠다드 플랜</Text>
+              <Text style={styles.premiumTitle}>유료회원 플랜</Text>
               <Text style={styles.premiumSub}>AI 법률 서류 무제한 · 월 9,900원</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={COLORS.gold} />

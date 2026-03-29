@@ -15,7 +15,7 @@ export const SUBSCRIPTION_TIERS = {
     ],
   },
   standard: {
-    name: '스탠다드',
+    name: '유료회원',
     price: 9900,
     priceLabel: '월 9,900원',
     features: [
@@ -25,7 +25,7 @@ export const SUBSCRIPTION_TIERS = {
       '보호 점수',
       '클라우드 백업',
     ],
-    disclaimer: '스탠다드 플랜의 고소장/경고장은 AI가 자동 생성한 초안이며, 변호사의 검토를 거치지 않았습니다. 법적 효력을 보장하지 않으며, 정확한 법률 조언을 위해서는 별도 변호사 상담(건별 유료)을 이용해 주세요.',
+    disclaimer: '유료회원 플랜의 고소장/경고장은 AI가 자동 생성한 초안이며, 변호사의 검토를 거치지 않았습니다. 법적 효력을 보장하지 않으며, 정확한 법률 조언을 위해서는 별도 변호사 상담(건별 유료)을 이용해 주세요.',
   },
 } as const;
 
@@ -63,5 +63,5 @@ export const PAID_SERVICES = {
   },
 } as const;
 
-/** 스탠다드 책임 한계 고지 (서류 생성 시 필수 표시) */
+/** 유료회원 책임 한계 고지 (서류 생성 시 필수 표시) */
 export const STANDARD_DISCLAIMER = '본 서류는 AI가 자동 생성한 초안이며, 변호사의 검토를 거치지 않았습니다. 법적 효력을 보장하지 않으며, 제출 전 전문가 검토를 권장합니다.';
