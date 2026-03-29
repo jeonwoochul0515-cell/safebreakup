@@ -759,6 +759,122 @@ consent → chat → document_select → review → preview → download
 
 ---
 
+## Phase 13: 회원가입/로그인 + 결제(토스페이먼츠) + 어드민
+
+> 기반: research.md 11장 + 아키텍처 설계 결과
+
+### 13-1. 아키텍처 — Firebase Auth + Firestore + 웹 어드민
+
+```
+[Firebase Auth] ← 구글 로그인 (1순위) + 이메일/비밀번호 (2순위)
+     ↓
+[AuthContext] ← lib/firebase.ts (Firebase 클라이언트)
+     ↓
+[인증 게이트] — 미인증 → (auth)/login, signup
+              — 인증됨 → (tabs)/홈, 증거함, 법률정보, 내 보호
+
+[Firestore] ← 사용자 프로필, 구독 상태, 결제 이력, 서류 이력, SOS 로그
+     ↓
+[웹 어드민] ← React + Firebase Admin SDK (별도 웹앱)
+```
+
+**Supabase → Firebase 전환:**
+- 기존 `@supabase/supabase-js` → `firebase` + `@react-native-firebase/*` 또는 Firebase JS SDK
+- Firestore를 메인 DB로 사용 (실시간 동기화, 오프라인 지원)
+- Firebase Auth의 구글 로그인이 Expo에서 네이티브 지원
+
+### 13-2. 신규 파일
+
+| 파일 | 역할 |
+|------|------|
+| `lib/firebase.ts` | Firebase 클라이언트 초기화 (Auth + Firestore) |
+| `contexts/AuthContext.tsx` | 인증 전용 Context (AppContext에서 분리) |
+| `app/(auth)/_layout.tsx` | 인증 라우트 그룹 레이아웃 |
+| `app/(auth)/login.tsx` | 로그인 (구글 버튼 + 이메일/비밀번호) |
+| `app/(auth)/signup.tsx` | 회원가입 (이메일+비밀번호+닉네임+동의 체크박스) |
+| `admin-web/` | **별도 웹 어드민** (React + Firebase Admin SDK) |
+
+### 13-3. 수정 파일
+
+| 파일 | 수정 내용 |
+|------|-----------|
+| `app/_layout.tsx` | AuthProvider 래핑 + 인증 게이트 |
+| `contexts/AppContext.tsx` | user/isAuthenticated → AuthContext로 이관 |
+| `types/database.ts` | User에 role, subscription_start/end 추가 |
+| `app/(tabs)/my-page.tsx` | 로그인 정보 + 로그아웃 + 구독 상태 |
+| `constants/admin.ts` | 티어 free/standard 통일 |
+| `package.json` | firebase, expo-auth-session 등 추가 |
+
+### 13-4. 인증 방식 — ✅ 확정
+
+| 순위 | 방식 | 구현 |
+|:----:|------|------|
+| **1** | **구글 로그인** | Firebase Auth + `expo-auth-session` |
+| **2** | **이메일/비밀번호** | Firebase Auth 기본 |
+
+### 13-5. 회원가입 화면 동의 체크박스
+
+```
+☐ [필수] 이용약관 동의                    (상세보기 >)
+☐ [필수] 개인정보 수집/이용 동의           (상세보기 >)
+☐ [필수] 만 14세 이상입니다
+☐ [선택] 마케팅 정보 수신 동의
+```
+
+### 13-6. 결제 — 토스페이먼츠
+
+**구독 결제 (월 9,900원):** 토스페이먼츠 빌링키 → 매월 자동 결제
+**건별 결제:** 토스페이먼츠 일반결제 API
+**결제수단:** 카드, 카카오페이, 토스페이, 네이버페이, 계좌이체
+
+### 13-7. 어드민 — 웹 어드민 ✅ 확정
+
+**별도 웹 어드민 (`admin-web/`):**
+- React + Firebase Admin SDK
+- Firestore에서 실시간 데이터 조회
+- 회원 관리: 목록/검색/상세/구독 변경
+- 서류 현황: 고소장/경고장/내용증명 생성 이력
+- SOS 로그: 긴급 발동 기록
+- 매출: 결제 이력/통계
+- 배포: Vercel 또는 Firebase Hosting
+
+**기존 앱 내 어드민 (`app/admin/`):** 향후 정리 또는 웹으로 완전 이관
+
+### 13-8. Firestore 컬렉션 설계
+
+```
+users/
+  {uid}/
+    email, nickname, role, subscription_tier, subscription_start, subscription_end
+
+    evidence/        ← 사용자별 증거 (향후 클라우드 동기화)
+    complaints/      ← 서류 생성 이력
+    payments/        ← 결제 이력
+
+sos_logs/            ← SOS 발동 로그 (전체)
+  {logId}/
+    userId, timestamp, type
+
+documents/           ← 서류 생성 현황 (전체)
+  {docId}/
+    userId, type, status, createdAt
+```
+
+### 13-9. 구현 순서
+
+| 단계 | 작업 | 의존성 |
+|:----:|------|:------:|
+| **P13-1** | Firebase 프로젝트 설정 + `lib/firebase.ts` | 없음 |
+| **P13-2** | AuthContext 생성 (Firebase Auth 연동) | P13-1 |
+| **P13-3** | 로그인 화면 (구글 + 이메일) + 회원가입 + 인증 게이트 | P13-2 |
+| **P13-4** | my-page 로그인 정보 + 로그아웃 | P13-2 |
+| **P13-5** | Firestore 사용자 프로필 생성/조회 | P13-1 |
+| **P13-6** | `admin-web/` 웹 어드민 프로젝트 생성 | P13-5 |
+| **P13-7** | admin.ts 티어 통일 + 앱 내 어드민 정리 | P13-5 |
+| **P13-8** | 토스페이먼츠 결제 연동 | P13-3 |
+
+---
+
 ## Phase 12: 전체 일치성 점검 결과 + 잔여 미구현 항목
 
 > 2026-03-29 교차 검증 결과

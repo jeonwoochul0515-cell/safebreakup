@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Stack, usePathname } from 'expo-router';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { Stack, usePathname, useSegments, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { AppProvider, useAppContext } from '@/contexts/AppContext';
 import { COLORS } from '@/constants/theme';
 import { useShakeDetection } from '@/hooks/useShakeDetection';
@@ -15,6 +16,39 @@ import StealthCalculatorScreen from './stealth';
 
 // Keep splash visible while loading
 SplashScreen.preventAutoHideAsync();
+
+// ─── 인증 게이트: 인증 여부에 따라 리다이렉트 ──────────────────────────────────
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (!isAuthenticated && !inAuthGroup) {
+      // 미인증 + (auth) 밖 → 로그인으로 리다이렉트
+      router.replace('/(auth)/login');
+    } else if (isAuthenticated && inAuthGroup) {
+      // 인증됨 + (auth) 안에 있음 → 홈으로 리다이렉트
+      router.replace('/');
+    }
+  }, [isAuthenticated, isLoading, segments]);
+
+  // 로딩 중에는 스플래시/로딩 표시
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.gold} />
+        <StatusBar style="dark" />
+      </View>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 function RootNavigator() {
   const { isStealthMode, setStealthMode, safetySettings } = useAppContext();
@@ -61,6 +95,10 @@ function RootNavigator() {
           contentStyle: { backgroundColor: COLORS.cream },
         }}
       >
+        <Stack.Screen
+          name="(auth)"
+          options={{ headerShown: false }}
+        />
         <Stack.Screen
           name="(tabs)"
           options={{ headerShown: false }}
@@ -226,14 +264,24 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <AppProvider>
-      <RootNavigator />
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <AuthGate>
+          <RootNavigator />
+        </AuthGate>
+      </AppProvider>
+    </AuthProvider>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.cream,
   },
 });

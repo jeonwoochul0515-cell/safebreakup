@@ -19,6 +19,8 @@ export default function AdminLayout() {
       <Stack.Screen name="consultations" options={{ title: '상담 관리' }} />
       <Stack.Screen name="users" options={{ title: '사용자 관리' }} />
       <Stack.Screen name="letter-generator" options={{ title: '경고장 생성기' }} />
+      <Stack.Screen name="documents" options={{ title: '서류 검토 관리' }} />
+      <Stack.Screen name="sos-logs" options={{ title: 'SOS 로그' }} />
     </Stack>
   );
 }

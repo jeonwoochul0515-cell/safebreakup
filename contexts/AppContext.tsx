@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import type { SafetySettings, User } from '@/types/database';
+import type { SafetySettings } from '@/types/database';
 
 export type CaseType = 'self_protect' | 'warning_letter' | 'complaint' | null;
 
@@ -40,11 +40,6 @@ export interface AppContextType {
   // Safety settings
   safetySettings: SafetySettings;
   setSafetySettings: (settings: Partial<SafetySettings>) => void;
-
-  // User (Supabase auth prep)
-  user: User | null;
-  setUser: (user: User | null) => void;
-  isAuthenticated: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -65,9 +60,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setSafetySettings = useCallback((settings: Partial<SafetySettings>) => {
     setSafetySettingsState((prev) => ({ ...prev, ...settings }));
   }, []);
-
-  // User (Supabase auth prep)
-  const [user, setUser] = useState<User | null>(null);
 
   const addCompletedStep = useCallback((step: string) => {
     setCompletedSteps((prev) => {
@@ -95,9 +87,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setCaseType,
         safetySettings,
         setSafetySettings,
-        user,
-        setUser,
-        isAuthenticated: !!user,
       }}
     >
       {children}

@@ -36,6 +36,7 @@ export function useAuth() {
       updated_at: new Date().toISOString(),
       subscription_tier: 'free',
       is_active: true,
+      role: 'user',
     };
     setUser(mockUser);
     setIsLoading(false);

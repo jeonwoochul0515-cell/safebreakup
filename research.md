@@ -748,3 +748,46 @@
 - 개인정보보호위원회 AI 안내서 — [pipc.go.kr](https://www.pipc.go.kr)
 - 사법부 AI 활용 지침 — [Lexology](https://www.lexology.com/library/detail.aspx?g=3de965db)
 - EviSafe — [evisafe.com](https://evisafe.com/)
+
+---
+
+## 11. 회원가입/로그인 + 결제 + 어드민 시스템
+
+### 11-1. 인증 — Supabase Auth + Expo
+
+**권장 인증 방식 (한국 사용자):**
+
+| 순위 | 방식 | Supabase 지원 | Expo 호환 |
+|:----:|------|:------------:|:---------:|
+| 1 | **카카오 로그인** | 공식 | WebBrowser OAuth |
+| 2 | **이메일/비밀번호** | 기본 | 네이티브 |
+| 3 | **애플 로그인** | 공식 | expo-apple-authentication |
+| 4 | 구글 로그인 | 공식 | expo-auth-session |
+
+**SecureStore 2048바이트 제한 해결:** 암호화 키만 SecureStore, 세션은 암호화 후 AsyncStorage
+
+### 11-2. 회원가입 법적 요건
+
+필수 동의: 이용약관(필수) + 개인정보 수집/이용(필수) + 14세 이상(필수) + 마케팅(선택)
+탈퇴 시: 즉시 삭제 + 결제 기록 5년 보존 + 증거 다운로드 안내
+
+### 11-3. 결제 — 토스페이먼츠 확정
+
+| 결제 유형 | 방식 | 결제수단 |
+|-----------|------|---------|
+| 구독 (월 9,900원) | 토스페이먼츠 정기결제 (빌링키) | 카드, 카카오페이, 토스페이 |
+| 건별 결제 | 토스페이먼츠 일반결제 | 카드, 카카오페이, 토스페이, 네이버페이, 계좌이체 |
+
+수수료: ~2.5-3.5% (앱스토어 30%보다 훨씬 저렴)
+
+### 11-4. 피해자 보호 보안
+
+- 앱 레벨 PIN/생체인증 (세션과 별개)
+- 증거 삭제 72시간 유예
+- 로그인 알림 + 원격 세션 무효화
+- 패닉 버튼 (특정 PIN 시 데이터 숨김)
+
+### 출처
+- Supabase Auth — [supabase.com/docs](https://supabase.com/docs)
+- 토스페이먼츠 — [tosspayments.com](https://www.tosspayments.com)
+- PortOne — [github.com/portone-io](https://github.com/portone-io/react-native-sdk)

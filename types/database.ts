@@ -27,6 +27,9 @@ export interface User {
   updated_at: string;
   subscription_tier: 'free' | 'standard';
   is_active: boolean;
+  role: 'user' | 'admin';
+  subscription_start?: string;
+  subscription_end?: string;
 }
 
 /** 사용자 사건 */

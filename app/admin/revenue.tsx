@@ -17,8 +17,8 @@ export default function RevenueScreen() {
   const current = MOCK_REVENUE.monthly[MOCK_REVENUE.monthly.length - 1];
   const tier = MOCK_REVENUE.tierBreakdown;
   const conversion = MOCK_REVENUE.conversionRate;
-  const totalUsers = tier.free + tier.light + tier.care;
-  const subscriberCount = tier.care + tier.light;
+  const totalUsers = tier.free + tier.standard;
+  const subscriberCount = tier.standard;
 
   const maxTotal = Math.max(...MOCK_REVENUE.monthly.map((m) => m.total));
 
@@ -27,8 +27,7 @@ export default function RevenueScreen() {
   );
 
   const freePercent = Math.round((tier.free / totalUsers) * 100);
-  const lightPercent = Math.round((tier.light / totalUsers) * 100);
-  const carePercent = 100 - freePercent - lightPercent;
+  const standardPercent = 100 - freePercent;
 
   const conversionOverall = ((subscriberCount / totalUsers) * 100).toFixed(1);
 
@@ -57,7 +56,7 @@ export default function RevenueScreen() {
               {subscriberCount.toLocaleString()}명
             </Text>
             <Text style={styles.kpiSub}>
-              케어 {tier.care} + 라이트 {tier.light}
+              유료회원 {tier.standard}
             </Text>
           </View>
           <View style={[styles.kpiCard, { borderTopColor: COLORS.sage }]}>
@@ -177,23 +176,15 @@ export default function RevenueScreen() {
               <View
                 style={[
                   styles.stackedSegment,
-                  { flex: lightPercent, backgroundColor: COLORS.gold },
-                ]}
-              >
-                <Text style={styles.stackedText}>라이트</Text>
-              </View>
-              <View
-                style={[
-                  styles.stackedSegment,
                   {
-                    flex: carePercent,
-                    backgroundColor: COLORS.tierPremium,
+                    flex: standardPercent,
+                    backgroundColor: COLORS.gold,
                     borderTopRightRadius: RADIUS.sm,
                     borderBottomRightRadius: RADIUS.sm,
                   },
                 ]}
               >
-                <Text style={styles.stackedText}>케어</Text>
+                <Text style={styles.stackedText}>유료회원</Text>
               </View>
             </View>
             <View style={styles.tierDetails}>
@@ -210,21 +201,9 @@ export default function RevenueScreen() {
                 <View
                   style={[styles.tierDot, { backgroundColor: COLORS.gold }]}
                 />
-                <Text style={styles.tierLabel}>라이트</Text>
+                <Text style={styles.tierLabel}>유료회원</Text>
                 <Text style={styles.tierValue}>
-                  {tier.light.toLocaleString()}명 ({lightPercent}%)
-                </Text>
-              </View>
-              <View style={styles.tierRow}>
-                <View
-                  style={[
-                    styles.tierDot,
-                    { backgroundColor: COLORS.tierPremium },
-                  ]}
-                />
-                <Text style={styles.tierLabel}>케어</Text>
-                <Text style={styles.tierValue}>
-                  {tier.care.toLocaleString()}명 ({carePercent}%)
+                  {tier.standard.toLocaleString()}명 ({standardPercent}%)
                 </Text>
               </View>
             </View>
@@ -254,39 +233,18 @@ export default function RevenueScreen() {
                   color={COLORS.lightText}
                 />
                 <Text style={styles.funnelRate}>
-                  {conversion.freeToLight}% 전환
+                  {conversion.freeToStandard}% 전환
                 </Text>
               </View>
               {/* Step 2 */}
-              <View style={[styles.funnelStep, { width: '70%' }]}>
+              <View style={[styles.funnelStep, { width: '60%' }]}>
                 <View
                   style={[
                     styles.funnelBar,
                     { backgroundColor: COLORS.gold, width: '100%' },
                   ]}
                 >
-                  <Text style={styles.funnelBarText}>라이트 구독</Text>
-                </View>
-              </View>
-              <View style={styles.funnelArrow}>
-                <Ionicons
-                  name="arrow-down"
-                  size={18}
-                  color={COLORS.lightText}
-                />
-                <Text style={styles.funnelRate}>
-                  {conversion.lightToCare}% 전환
-                </Text>
-              </View>
-              {/* Step 3 */}
-              <View style={[styles.funnelStep, { width: '45%' }]}>
-                <View
-                  style={[
-                    styles.funnelBar,
-                    { backgroundColor: COLORS.tierPremium, width: '100%' },
-                  ]}
-                >
-                  <Text style={styles.funnelBarText}>케어 구독</Text>
+                  <Text style={styles.funnelBarText}>유료회원</Text>
                 </View>
               </View>
               <View style={styles.funnelArrow}>
@@ -299,8 +257,8 @@ export default function RevenueScreen() {
                   체험→유료 {conversion.trialToPaid}%
                 </Text>
               </View>
-              {/* Step 4 */}
-              <View style={[styles.funnelStep, { width: '30%' }]}>
+              {/* Step 3 */}
+              <View style={[styles.funnelStep, { width: '35%' }]}>
                 <View
                   style={[
                     styles.funnelBar,
@@ -316,7 +274,7 @@ export default function RevenueScreen() {
 
         {/* Top Services Table */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>서비스별 매출 TOP 5</Text>
+          <Text style={styles.sectionTitle}>서비스별 매출</Text>
           <View style={styles.card}>
             {/* Table Header */}
             <View style={styles.tableHeader}>

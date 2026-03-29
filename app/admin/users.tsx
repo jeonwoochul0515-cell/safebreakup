@@ -23,8 +23,7 @@ const STATUS_BAR_HEIGHT =
 const TIER_FILTERS = [
   { key: 'all', label: '전체' },
   { key: 'free', label: '무료' },
-  { key: 'light', label: '라이트' },
-  { key: 'care', label: '케어' },
+  { key: 'standard', label: '유료회원' },
 ] as const;
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -40,8 +39,7 @@ export default function AdminUsers() {
 
   const tierCounts = {
     free: MOCK_USERS.filter((u) => u.tier === 'free').length,
-    light: MOCK_USERS.filter((u) => u.tier === 'light').length,
-    care: MOCK_USERS.filter((u) => u.tier === 'care').length,
+    standard: MOCK_USERS.filter((u) => u.tier === 'standard').length,
   };
 
   const users = useMemo(() => {

@@ -19,6 +19,8 @@ import {
   MOCK_USERS,
   MOCK_REVENUE,
   MOCK_EVIDENCE_REVIEWS,
+  MOCK_SOS_LOGS,
+  MOCK_DOCUMENTS,
   TIER_CONFIG,
 } from '@/constants/admin';
 
@@ -128,20 +130,25 @@ export default function AdminDashboard() {
   const totalUsers = MOCK_USERS.length;
   const tierCounts = {
     free: MOCK_USERS.filter((u) => u.tier === 'free').length,
-    light: MOCK_USERS.filter((u) => u.tier === 'light').length,
-    care: MOCK_USERS.filter((u) => u.tier === 'care').length,
+    standard: MOCK_USERS.filter((u) => u.tier === 'standard').length,
   };
   const latestRevenue = MOCK_REVENUE.monthly[MOCK_REVENUE.monthly.length - 1];
   const revenueInManwon = Math.round(latestRevenue.total / 10000);
   const pendingEvidence = MOCK_EVIDENCE_REVIEWS.filter(
     (e) => e.status === 'pending'
   ).length;
+  const pendingDocuments = MOCK_DOCUMENTS.filter(
+    (d) => d.status === 'lawyer_review' || d.status === 'draft'
+  ).length;
+  const sosCount = MOCK_SOS_LOGS.length;
 
   const quickActions = [
     { label: '상담 관리', icon: 'chatbubbles' as const, route: '/admin/consultations' },
     { label: '사용자 관리', icon: 'people' as const, route: '/admin/users' },
     { label: '매출 통계', icon: 'bar-chart' as const, route: '/admin/revenue' },
     { label: '증거 검토', icon: 'document-text' as const, route: '/admin/evidence' },
+    { label: '서류 검토', icon: 'document-attach' as const, route: '/admin/documents' },
+    { label: 'SOS 로그', icon: 'alert-circle' as const, route: '/admin/sos-logs' },
     { label: '콘텐츠 관리', icon: 'create' as const, route: '/admin/content' },
   ];
 
@@ -196,11 +203,8 @@ export default function AdminDashboard() {
               <Text style={[styles.tierBadge, { color: TIER_CONFIG.free.color }]}>
                 무료 {tierCounts.free}
               </Text>
-              <Text style={[styles.tierBadge, { color: TIER_CONFIG.light.color }]}>
-                라이트 {tierCounts.light}
-              </Text>
-              <Text style={[styles.tierBadge, { color: TIER_CONFIG.care.color }]}>
-                케어 {tierCounts.care}
+              <Text style={[styles.tierBadge, { color: TIER_CONFIG.standard.color }]}>
+                유료 {tierCounts.standard}
               </Text>
             </View>
           </View>
@@ -228,6 +232,28 @@ export default function AdminDashboard() {
             <Text style={styles.cardSub}>
               전체 {MOCK_EVIDENCE_REVIEWS.length}건
             </Text>
+          </View>
+
+          {/* 서류 대기 */}
+          <View style={styles.dashCard}>
+            <View style={[styles.cardIconWrap, { backgroundColor: '#EDE7F6' }]}>
+              <Ionicons name="reader" size={22} color="#7E57C2" />
+            </View>
+            <Text style={styles.cardValue}>{pendingDocuments}</Text>
+            <Text style={styles.cardLabel}>서류 대기</Text>
+            <Text style={styles.cardSub}>
+              전체 {MOCK_DOCUMENTS.length}건
+            </Text>
+          </View>
+
+          {/* SOS 발생 */}
+          <View style={styles.dashCard}>
+            <View style={[styles.cardIconWrap, { backgroundColor: '#FCE4EC' }]}>
+              <Ionicons name="alert-circle" size={22} color="#E53935" />
+            </View>
+            <Text style={styles.cardValue}>{sosCount}</Text>
+            <Text style={styles.cardLabel}>SOS 발생</Text>
+            <Text style={styles.cardSub}>최근 7일</Text>
           </View>
         </View>
 
@@ -270,6 +296,23 @@ export default function AdminDashboard() {
               </Text>
             </View>
           ))}
+
+        {/* 최근 서류 생성 */}
+        <Text style={styles.sectionTitle}>최근 서류 생성</Text>
+        {MOCK_DOCUMENTS.slice(0, 5).map((doc) => (
+          <View key={doc.id} style={styles.recentCard}>
+            <View style={styles.recentRow}>
+              <View style={[styles.recentTypeBadge, { backgroundColor: '#7E57C2' }]}>
+                <Text style={styles.recentTypeText}>{doc.type}</Text>
+              </View>
+              <Text style={styles.recentName}>{doc.userName}</Text>
+              <Text style={styles.recentTime}>{doc.createdDate}</Text>
+            </View>
+            <Text style={styles.recentNotes} numberOfLines={1}>
+              {doc.notes}
+            </Text>
+          </View>
+        ))}
 
         <View style={{ height: SPACING.xxl }} />
       </ScrollView>

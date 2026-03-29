@@ -9,11 +9,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { COLORS, SPACING, RADIUS, FONT_SIZE, SHADOW } from '@/constants/theme';
 import TrustSignalBar from '@/components/TrustSignalBar';
 import StatusTracker from '@/components/StatusTracker';
 import SOSModal from '@/components/SOSModal';
 import { useAppContext } from '@/contexts/AppContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { loadAllEvidence } from '@/lib/secure-evidence';
 
 // ---------------------------------------------------------------------------
@@ -23,6 +25,7 @@ import { loadAllEvidence } from '@/lib/secure-evidence';
 export default function MyPageScreen() {
   const insets = useSafeAreaInsets();
   const { casePhase, caseStatus, caseType, completedSteps } = useAppContext();
+  const { userProfile, signOut: authSignOut } = useAuth();
 
   // Real data: evidence count
   const [evidenceCount, setEvidenceCount] = useState(0);
@@ -42,15 +45,32 @@ export default function MyPageScreen() {
   // -----------------------------------------------------------------------
 
   const handleUpgrade = () => {
-    Alert.alert('보호 플랜', '구독 페이지로 이동합니다. (준비 중)');
+    router.push('/subscription' as any);
   };
 
   const handleChecklist = () => {
-    Alert.alert('체크리스트', '안전 이별 체크리스트 페이지로 이동합니다. (준비 중)');
+    router.push('/checklist' as any);
   };
 
   const handleSOS = () => {
     setShowSOS(true);
+  };
+
+  const handleLogout = () => {
+    Alert.alert('로그아웃', '정말 로그아웃하시겠습니까?', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '로그아웃',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await authSignOut();
+          } catch (err) {
+            Alert.alert('오류', '로그아웃 중 문제가 발생했습니다.');
+          }
+        },
+      },
+    ]);
   };
 
   // -----------------------------------------------------------------------
@@ -67,25 +87,46 @@ export default function MyPageScreen() {
   // -----------------------------------------------------------------------
   const actions = [
     {
-      title: '보호 플랜 업그레이드',
-      desc: '더 강력한 법적 보호를 받으세요',
-      icon: 'star-outline' as const,
+      title: '고소장 / 서류 작성',
+      desc: 'AI 자동 작성 (고소장, 경고장, 내용증명)',
+      icon: 'document-attach-outline' as const,
       accentColor: COLORS.gold,
-      onPress: handleUpgrade,
+      onPress: () => router.push('/complaint' as any),
+    },
+    {
+      title: '증거보관함',
+      desc: `${evidenceCount}건의 증거가 암호화 저장됨`,
+      icon: 'folder-open-outline' as const,
+      accentColor: COLORS.blue,
+      onPress: () => router.push('/evidence' as any),
     },
     {
       title: '안전 이별 체크리스트',
-      desc: '12가지 필수 확인 사항',
+      desc: `${checklistDone}/${checklistTotal} 완료`,
       icon: 'list-outline' as const,
       accentColor: COLORS.sage,
       onPress: handleChecklist,
     },
     {
-      title: '긴급 연락처 확인',
-      desc: '경찰 · 1366 · 법률사무소 청송',
+      title: '유료회원 업그레이드',
+      desc: '월 9,900원 · AI 무제한 + 클라우드 백업',
+      icon: 'star-outline' as const,
+      accentColor: COLORS.plum,
+      onPress: handleUpgrade,
+    },
+    {
+      title: '긴급 연락처',
+      desc: '경찰 112 · 여성긴급전화 1366 · 자살예방 1393',
       icon: 'call-outline' as const,
       accentColor: COLORS.coral,
       onPress: handleSOS,
+    },
+    {
+      title: '로그아웃',
+      desc: userProfile?.email || '로그인 정보 없음',
+      icon: 'log-out-outline' as const,
+      accentColor: COLORS.lightText,
+      onPress: handleLogout,
     },
   ];
 
@@ -104,8 +145,12 @@ export default function MyPageScreen() {
         <View style={styles.avatarCircle}>
           <Ionicons name="shield-checkmark" size={32} color={COLORS.white} />
         </View>
-        <Text style={styles.heading}>나의 보호 현황</Text>
-        <Text style={styles.subtitle}>법률사무소 청송이 함께합니다</Text>
+        <Text style={styles.heading}>
+          {userProfile?.nickname || '사용자'}님의 보호 현황
+        </Text>
+        <Text style={styles.subtitle}>
+          {userProfile?.email ? `${userProfile.email}` : '법률사무소 청송이 함께합니다'}
+        </Text>
       </View>
 
       {/* ===== Trust Signal Bar ===== */}
